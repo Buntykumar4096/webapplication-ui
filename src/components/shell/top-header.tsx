@@ -12,7 +12,7 @@ import { hospitalContext } from "@/data/mock";
 
 export function TopHeader() {
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-header-border bg-header/92 px-3 backdrop-blur md:px-4">
+    <header className="flex h-14 items-center gap-2 border-b border-header-border bg-header px-3 md:px-4">
       <MobileNavigation />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 text-sm font-semibold text-foreground">

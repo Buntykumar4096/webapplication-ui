@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useTheme } from "next-themes";
 
 import {
   defaultPreference,
@@ -74,14 +73,33 @@ function applyPrimaryVariables(preference: UiPreference) {
   root.dataset.density = preference.density;
 }
 
+function resolveThemeMode(mode: UiPreference["mode"]) {
+  if (mode !== "system") return mode;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function applyThemeMode(mode: UiPreference["mode"]) {
+  const root = document.documentElement;
+  root.classList.toggle("dark", resolveThemeMode(mode) === "dark");
+  root.style.colorScheme = resolveThemeMode(mode);
+}
+
 export function UiPreferenceProvider({ children }: { children: React.ReactNode }) {
-  const { setTheme } = useTheme();
   const preference = React.useSyncExternalStore(subscribePreference, readPreference, () => defaultPreference);
 
   React.useEffect(() => {
-    setTheme(preference.mode);
+    applyThemeMode(preference.mode);
     applyPrimaryVariables(preference);
-  }, [preference, setTheme]);
+  }, [preference]);
+
+  React.useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const syncSystemTheme = () => {
+      if (readPreference().mode === "system") applyThemeMode("system");
+    };
+    media.addEventListener("change", syncSystemTheme);
+    return () => media.removeEventListener("change", syncSystemTheme);
+  }, []);
 
   const setPreference = React.useCallback(
     (nextPreference: UiPreference) => {
@@ -89,11 +107,11 @@ export function UiPreferenceProvider({ children }: { children: React.ReactNode }
       cachedPreferenceValue = normalizedPreference;
       cachedPreferenceRaw = JSON.stringify(normalizedPreference);
       window.localStorage.setItem(uiPreferenceStorageKey, cachedPreferenceRaw);
-      setTheme(normalizedPreference.mode);
+      applyThemeMode(normalizedPreference.mode);
       applyPrimaryVariables(normalizedPreference);
       window.dispatchEvent(new Event(preferenceChangeEvent));
     },
-    [setTheme],
+    [],
   );
 
   const resetPreference = React.useCallback(() => {

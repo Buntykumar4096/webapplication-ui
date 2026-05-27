@@ -112,6 +112,94 @@ function daysInMonth(month: number, year: number) {
   return new Date(year, month + 1, 0).getDate();
 }
 
+function yearRangeStart(year: number) {
+  return Math.floor(year / 5) * 5;
+}
+
+function yearRangeLabel(start: number) {
+  const end = start + 5;
+  const endLabel = Math.floor(start / 100) === Math.floor(end / 100) ? String(end).slice(2) : String(end);
+  return `${start} - ${endLabel}`;
+}
+
+function YearRangePicker({
+  visibleYear,
+  onClose,
+  onSelectYear,
+  onToday,
+}: {
+  visibleYear: number;
+  onClose: () => void;
+  onSelectYear: (year: number) => void;
+  onToday: () => void;
+}) {
+  const currentYear = new Date().getFullYear();
+  const lastYear = Math.max(currentYear + 125, yearRangeStart(visibleYear) + 25);
+  const ranges = React.useMemo(() => Array.from({ length: Math.ceil((lastYear - 1900) / 5) + 1 }, (_, index) => 1900 + index * 5), [lastYear]);
+  const [selectedRangeStart, setSelectedRangeStart] = React.useState<number | null>(null);
+  const exactYears = selectedRangeStart ? Array.from({ length: 6 }, (_, index) => selectedRangeStart + index) : [];
+
+  return (
+    <div className="absolute inset-0 z-10 flex flex-col overflow-hidden rounded-lg bg-surface">
+      <div className="flex h-full w-full flex-col overflow-hidden">
+        <div className="border-b border-border p-3">
+          <div className="flex items-center gap-2 text-base font-semibold text-foreground">
+            <CalendarDays className="h-5 w-5 text-primary" />
+            {selectedRangeStart ? yearRangeLabel(selectedRangeStart) : "Select Year"}
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">{selectedRangeStart ? "Choose exact year" : "Choose a year range"}</p>
+        </div>
+        <div className="grid flex-1 gap-2 overflow-auto p-3 sm:grid-cols-2">
+          {(selectedRangeStart ? exactYears : ranges).map((value) => {
+            const active = selectedRangeStart ? visibleYear === value : visibleYear >= value && visibleYear <= value + 5;
+            return selectedRangeStart ? (
+              <button
+                className={`min-h-12 rounded-md border px-3 text-sm font-medium transition ${
+                  active ? "border-primary bg-primary/5 text-primary shadow-sm" : "border-border hover:border-primary/50 hover:bg-surface-muted"
+                }`}
+                key={value}
+                onClick={() => {
+                  onSelectYear(value);
+                  onClose();
+                }}
+                type="button"
+              >
+                {value}
+              </button>
+            ) : (
+              <button
+                className={`min-h-12 rounded-md border px-3 text-sm font-medium transition ${
+                  active ? "border-primary bg-primary/5 text-primary shadow-sm" : "border-border hover:border-primary/50 hover:bg-surface-muted"
+                }`}
+                key={value}
+                onClick={() => setSelectedRangeStart(value)}
+                type="button"
+              >
+                {yearRangeLabel(value)}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex items-center justify-between border-t border-border p-3">
+          <Button onClick={onToday} type="button" variant="outline">
+            Today
+          </Button>
+          <div className="flex gap-2">
+            {selectedRangeStart ? (
+              <Button onClick={() => setSelectedRangeStart(null)} type="button" variant="outline">
+                Back
+              </Button>
+            ) : null}
+            <Button onClick={onClose} type="button" variant="outline">
+              Close
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function calculateBmi(height: string, weight: string) {
   const heightCm = Number(height);
   const weightKg = Number(weight);
@@ -164,6 +252,7 @@ function DateTextInput({
 }) {
   const [internalValue, setInternalValue] = React.useState("");
   const [open, setOpen] = React.useState(false);
+  const [yearPickerOpen, setYearPickerOpen] = React.useState(false);
   const [visibleMonth, setVisibleMonth] = React.useState(() => textDateToParts(value ?? "").month);
   const [visibleYear, setVisibleYear] = React.useState(() => textDateToParts(value ?? "").year);
   const [popoverStyle, setPopoverStyle] = React.useState<React.CSSProperties>({});
@@ -171,10 +260,6 @@ function DateTextInput({
   const currentValue = value ?? internalValue;
   const selected = parseDateValue(currentValue);
   const monthNames = React.useMemo(() => ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], []);
-  const yearOptions = React.useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    return Array.from({ length: currentYear - 1900 + 6 }, (_, index) => currentYear + 5 - index);
-  }, []);
   const totalDays = daysInMonth(visibleMonth, visibleYear);
 
   function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -244,13 +329,6 @@ function DateTextInput({
     }
   }, [currentValue]);
 
-  function handleYearChange(event: React.ChangeEvent<HTMLSelectElement>) {
-    const nextYear = Number(event.target.value);
-    if (nextYear >= 1900 && nextYear <= 2100) {
-      setVisibleYear(nextYear);
-    }
-  }
-
   function selectToday() {
     const today = new Date();
     const nextValue = datePartsToText(today.getDate(), today.getMonth(), today.getFullYear());
@@ -259,6 +337,13 @@ function DateTextInput({
     setInternalValue(nextValue);
     onChange?.(nextValue);
     setOpen(false);
+  }
+
+  function selectTodayYear() {
+    const today = new Date();
+    setVisibleMonth(today.getMonth());
+    setVisibleYear(today.getFullYear());
+    setYearPickerOpen(false);
   }
 
   function clearDate() {
@@ -296,7 +381,7 @@ function DateTextInput({
       </div>
 
       {open ? (
-        <div className="fixed z-[100] rounded-lg border border-border bg-surface p-3 shadow-soft" style={popoverStyle}>
+        <div className="fixed z-[100] h-[356px] rounded-lg border border-border bg-surface p-3 shadow-soft" style={popoverStyle}>
           <div className="mb-3 flex items-center justify-between gap-2">
             <Button aria-label="Previous month" onClick={() => moveMonth(-1)} size="icon" type="button" variant="ghost">
               <ChevronLeft className="h-4 w-4" />
@@ -314,18 +399,10 @@ function DateTextInput({
                   </option>
                 ))}
               </select>
-              <select
-                aria-label="Select year"
-                className={selectClass}
-                onChange={handleYearChange}
-                value={visibleYear}
-              >
-                {yearOptions.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
+              <button aria-label="Select year" className={selectClass} onClick={() => setYearPickerOpen(true)} type="button">
+                <span className="flex-1 text-left">{visibleYear}</span>
+                <ChevronRight className="h-4 w-4 rotate-90 text-muted-foreground" />
+              </button>
             </div>
             <Button aria-label="Next month" onClick={() => moveMonth(1)} size="icon" type="button" variant="ghost">
               <ChevronRight className="h-4 w-4" />
@@ -369,6 +446,7 @@ function DateTextInput({
               Today
             </Button>
           </div>
+          {yearPickerOpen ? <YearRangePicker onClose={() => setYearPickerOpen(false)} onSelectYear={setVisibleYear} onToday={selectTodayYear} visibleYear={visibleYear} /> : null}
         </div>
       ) : null}
     </div>
