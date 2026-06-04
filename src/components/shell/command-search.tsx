@@ -15,7 +15,8 @@ export function CommandSearch({ triggerClassName, compact = false }: { triggerCl
 
   React.useEffect(() => {
     const down = (event: KeyboardEvent) => {
-      if (event.key === "/" || (event.key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey))) {
+      const key = typeof event.key === "string" ? event.key : "";
+      if (key === "/" || (key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey))) {
         event.preventDefault();
         setOpen((value) => !value);
       }

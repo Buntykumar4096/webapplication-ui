@@ -46,6 +46,31 @@ type DraftCard = {
 
 type DraftErrors = Partial<Record<"result" | "date" | "time" | "performedBy", string>>;
 
+type DraftAction =
+  | { type: "add"; drafts: DraftCard[] }
+  | { type: "remove"; id: string }
+  | { type: "replace"; drafts: DraftCard[] }
+  | { type: "reset" }
+  | { type: "syncPerformer"; performedBy: string }
+  | { type: "update"; id: string; patch: Partial<DraftCard> };
+
+function draftsReducer(drafts: DraftCard[], action: DraftAction) {
+  switch (action.type) {
+    case "add":
+      return [...drafts, ...action.drafts];
+    case "remove":
+      return drafts.filter((draft) => draft.id !== action.id);
+    case "replace":
+      return action.drafts;
+    case "reset":
+      return [];
+    case "syncPerformer":
+      return drafts.map((draft) => ({ ...draft, performedBy: action.performedBy }));
+    case "update":
+      return drafts.map((draft) => (draft.id === action.id ? { ...draft, ...action.patch } : draft));
+  }
+}
+
 function formatDateForStorage(date: Date) {
   return date.toISOString().slice(0, 10);
 }
@@ -562,7 +587,10 @@ export function AddPoctPage() {
   const [search, setSearch] = React.useState("");
   const [patientId, setPatientId] = React.useState("100123");
   const [selectedTests, setSelectedTests] = React.useState<string[]>(() => readSelectedPoctTests());
-  const [drafts, setDrafts] = React.useState<DraftCard[]>(() =>
+  const [drafts, dispatchDrafts] = React.useReducer(
+    draftsReducer,
+    null,
+    () =>
     readSelectedPoctTests()
       .map((id) => poctTests.find((test) => test.id === id))
       .filter(Boolean)
@@ -576,7 +604,7 @@ export function AddPoctPage() {
   }, [selectedTests]);
 
   React.useEffect(() => {
-    setDrafts((current) => current.map((draft) => ({ ...draft, performedBy })));
+    dispatchDrafts({ type: "syncPerformer", performedBy });
   }, [performedBy]);
 
   function toggleTest(id: string) {
@@ -585,12 +613,12 @@ export function AddPoctPage() {
 
     if (selectedTests.includes(id)) {
       setSelectedTests((current) => current.filter((item) => item !== id));
-      setDrafts((current) => current.filter((draft) => draft.test.id !== id));
+      dispatchDrafts({ type: "replace", drafts: drafts.filter((draft) => draft.test.id !== id) });
       return;
     }
 
     setSelectedTests((current) => [...current, id]);
-    setDrafts((current) => [...current, makeDraft(test, performedBy)]);
+    dispatchDrafts({ type: "add", drafts: [makeDraft(test, performedBy)] });
   }
 
   function addAnotherTimeForSelectedTests() {
@@ -599,12 +627,12 @@ export function AddPoctPage() {
       toast.warning("Select at least one POCT test.");
       return;
     }
-    setDrafts((current) => [...current, ...tests.map((test) => makeDraft(test, performedBy))]);
+    dispatchDrafts({ type: "add", drafts: tests.map((test) => makeDraft(test, performedBy)) });
     toast.success(`${tests.length} repeat POCT entr${tests.length > 1 ? "ies" : "y"} added.`);
   }
 
   function updateDraft(id: string, patch: Partial<DraftCard>) {
-    setDrafts((current) => current.map((draft) => draft.id === id ? { ...draft, ...patch } : draft));
+    dispatchDrafts({ type: "update", id, patch });
     setDraftErrors((current) => {
       const nextErrors = { ...(current[id] ?? {}) };
       Object.keys(patch).forEach((key) => {
@@ -616,7 +644,7 @@ export function AddPoctPage() {
 
   function removeDraft(id: string) {
     const nextDrafts = drafts.filter((draft) => draft.id !== id);
-    setDrafts(nextDrafts);
+    dispatchDrafts({ type: "remove", id });
     setSelectedTests(Array.from(new Set(nextDrafts.map((draft) => draft.test.id))));
     setDraftErrors((current) => {
       const next = { ...current };
@@ -630,7 +658,7 @@ export function AddPoctPage() {
     setSearch("");
     setPatientId("100123");
     setSelectedTests([]);
-    setDrafts([]);
+    dispatchDrafts({ type: "reset" });
     setDraftErrors({});
     toast.info("Add POCT form reset.");
   }

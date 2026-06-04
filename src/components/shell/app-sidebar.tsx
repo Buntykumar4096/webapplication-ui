@@ -50,7 +50,7 @@ export function AppSidebar({
                 .filter((item) => item.group === group)
                 .map((item) => {
                   const Icon = item.icon;
-                  const active = pathname === item.route || (item.route !== "/dashboard" && pathname.startsWith(item.route));
+                  const active = pathname === item.route || (item.route !== "/dashboard" && pathname.startsWith(`${item.route}/`));
                   return (
                     <Link
                       aria-label={collapsed ? item.label : undefined}

@@ -14,16 +14,13 @@ type RoleContextValue = {
 const RoleContext = React.createContext<RoleContextValue | null>(null);
 
 function readSavedRole(): Role {
+  if (typeof window === "undefined") return "Hospital Admin";
   const saved = window.localStorage.getItem("plasmit-role");
   return saved && roles.includes(saved as Role) ? (saved as Role) : "Hospital Admin";
 }
 
 export function RoleProvider({ children }: { children: React.ReactNode }) {
-  const [role, setRoleState] = React.useState<Role>("Hospital Admin");
-
-  React.useEffect(() => {
-    setRoleState(readSavedRole());
-  }, []);
+  const [role, setRoleState] = React.useState<Role>(() => readSavedRole());
 
   const setRole = React.useCallback((nextRole: Role) => {
     setRoleState(nextRole);

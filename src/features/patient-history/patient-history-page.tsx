@@ -6,22 +6,35 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  Eye,
   FileClock,
   HeartPulse,
   Plus,
   RotateCcw,
   Save,
+  Send,
   ShieldAlert,
   Stethoscope,
   Upload,
   Users,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CenterModal } from "@/components/ui/center-modal";
 import { Input } from "@/components/ui/input";
+import {
+  applyPatientHistorySection,
+  collectPatientHistorySection,
+  findPatientHistoryRecord,
+  readPatientHistoryRecords,
+  upsertPatientHistoryRecordSection,
+  writePatientHistoryRecords,
+  type PatientHistoryRecord,
+} from "@/features/patient-history/patient-history-records";
 
 const labelClass = "text-xs font-medium text-foreground";
 const radioInputClass =
@@ -37,6 +50,12 @@ const tabs = [
 ] as const;
 
 type HistoryTab = (typeof tabs)[number]["id"];
+
+function getInitialEditingHistoryRecord() {
+  if (typeof window === "undefined") return null;
+  const recordId = new URLSearchParams(window.location.search).get("edit");
+  return recordId ? findPatientHistoryRecord(recordId) : null;
+}
 
 function formatDateInput(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 8);
@@ -476,14 +495,122 @@ function TextArea({ placeholder }: { placeholder?: string }) {
   );
 }
 
+function PatientHistoryPreview({
+  record,
+  onFieldChange,
+}: {
+  record: PatientHistoryRecord;
+  onFieldChange: (tabId: string, fieldIndex: number, value: string) => void;
+}) {
+  const sections = tabs.map((tab) => {
+    const section = record.sections.find((item) => item.tabId === tab.id);
+    return section ?? { tabId: tab.id, tabLabel: tab.label, fields: [] };
+  });
+
+  return (
+    <div className="rounded-lg border border-border bg-surface-muted p-3 sm:p-5">
+      <div className="mx-auto w-full max-w-[210mm] overflow-hidden bg-white text-black shadow-soft">
+        <div className="min-h-[297mm] p-6 sm:p-10">
+          <div className="border-b-2 border-black pb-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Plasmit Hospital HMS</div>
+                <h2 className="mt-1 text-2xl font-bold text-black">Patient History Preview</h2>
+                <p className="mt-1 text-sm text-neutral-600">Review and edit history before final submit.</p>
+              </div>
+              <div className="rounded border border-neutral-300 px-3 py-2 text-right text-xs text-neutral-600">
+                <div className="font-semibold text-black">Draft</div>
+                <div>{record.id}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-7 pt-6">
+            {sections.map((section) => (
+              <section className="break-inside-avoid" key={`history-preview-${section.tabId}`}>
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="h-px flex-1 bg-neutral-300" />
+                  <h3 className="shrink-0 text-sm font-bold uppercase tracking-wide text-black">{section.tabLabel}</h3>
+                  <div className="h-px flex-1 bg-neutral-300" />
+                </div>
+
+                {section.fields.length ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {section.fields.map((field, index) => (
+                      <label className="block rounded border border-neutral-300 p-2" key={`${section.tabId}-${field.label}-${index}`}>
+                        <span className="block text-[11px] font-semibold uppercase tracking-wide text-neutral-500">{field.label}</span>
+                        <textarea
+                          className="mt-1 min-h-9 w-full resize-y rounded border border-transparent bg-white p-1 text-sm font-medium text-black outline-none transition focus:border-neutral-400"
+                          onChange={(event) => onFieldChange(section.tabId, index, event.target.value)}
+                          value={field.value}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded border border-dashed border-neutral-300 px-3 py-5 text-center text-sm text-neutral-500">
+                    No history filled in this section yet.
+                  </div>
+                )}
+              </section>
+            ))}
+          </div>
+
+          <div className="mt-8 flex items-center justify-between border-t border-neutral-300 pt-4 text-xs text-neutral-500">
+            <span>Editable preview before final submit</span>
+            <span>Generated from Patient History draft</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mx-auto mt-4 flex w-full max-w-[210mm] justify-end">
+        <Button
+          onClick={() => {
+            toast.success("Patient history submitted.");
+          }}
+          size="sm"
+          type="button"
+        >
+          Submit
+          <Send className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function PatientHistoryPage() {
   const formRef = React.useRef<HTMLFormElement | null>(null);
+  const initialEditingRecord = React.useMemo(() => getInitialEditingHistoryRecord(), []);
   const [activeTab, setActiveTab] = React.useState<HistoryTab>("medical");
+  const [formKey, setFormKey] = React.useState(0);
+  const [editingRecordId, setEditingRecordId] = React.useState<string | null>(initialEditingRecord?.id ?? null);
+  const [editingRecord, setEditingRecord] = React.useState<PatientHistoryRecord | null>(initialEditingRecord);
+  const [previewRecord, setPreviewRecord] = React.useState<PatientHistoryRecord | null>(null);
+  const activeTabIndex = tabs.findIndex((tab) => tab.id === activeTab);
+
+  React.useEffect(() => {
+    if (!editingRecord || !formRef.current) return;
+    const section = editingRecord.sections.find((item) => item.tabId === activeTab);
+    if (!section) return;
+    applyPatientHistorySection(formRef.current, section);
+  }, [activeTab, editingRecord, formKey]);
+
+  function saveCurrentHistorySection() {
+    if (!formRef.current) return null;
+    const currentTab = tabs[activeTabIndex];
+    const section = collectPatientHistorySection(formRef.current, currentTab.id, currentTab.label);
+    if (!section.fields.length) return null;
+    const savedRecord = upsertPatientHistoryRecordSection(editingRecordId, section);
+    setEditingRecordId(savedRecord.id);
+    setEditingRecord(savedRecord);
+    return savedRecord;
+  }
 
   function nextTab() {
     if (!formRef.current?.reportValidity()) return;
-    const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);
-    const next = tabs[currentIndex + 1];
+    saveCurrentHistorySection();
+    const next = tabs[activeTabIndex + 1];
     if (next) {
       setActiveTab(next.id);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -492,20 +619,91 @@ export function PatientHistoryPage() {
     toast.success("Patient history is ready to save.");
   }
 
+  function handleCancel() {
+    setActiveTab("medical");
+    toast.info("Patient history entry cancelled.");
+  }
+
+  function handleSaveDraft() {
+    saveCurrentHistorySection();
+    toast.success("Patient history draft saved locally.");
+  }
+
+  function handleClear() {
+    setActiveTab("medical");
+    setEditingRecordId(null);
+    setEditingRecord(null);
+    setPreviewRecord(null);
+    setFormKey((key) => key + 1);
+    toast.info("Patient history form cleared.");
+  }
+
+  function handlePreview() {
+    const savedRecord = saveCurrentHistorySection() ?? editingRecord;
+    if (!savedRecord || !savedRecord.sections.some((section) => section.fields.length)) {
+      toast.warning("Fill patient history before preview.");
+      return;
+    }
+    setPreviewRecord(savedRecord);
+  }
+
+  function handleSubmit() {
+    const savedRecord = saveCurrentHistorySection() ?? editingRecord;
+    if (!savedRecord || !savedRecord.sections.some((section) => section.fields.length)) {
+      toast.warning("Fill patient history before submitting.");
+      return;
+    }
+    toast.success("Patient history submitted.");
+  }
+
+  function handlePreviewFieldChange(tabId: string, fieldIndex: number, value: string) {
+    setPreviewRecord((currentRecord) => {
+      if (!currentRecord) return currentRecord;
+      const nextRecord: PatientHistoryRecord = {
+        ...currentRecord,
+        updatedAt: new Date().toISOString(),
+        sections: currentRecord.sections.map((section) =>
+          section.tabId === tabId
+            ? {
+                ...section,
+                fields: section.fields.map((field, index) => (index === fieldIndex ? { ...field, value } : field)),
+              }
+            : section,
+        ),
+      };
+      setEditingRecord(nextRecord);
+      writePatientHistoryRecords(readPatientHistoryRecords().map((record) => (record.id === nextRecord.id ? nextRecord : record)));
+      return nextRecord;
+    });
+  }
+
   function handleFormKeyDown(event: React.KeyboardEvent<HTMLFormElement>) {
     const target = event.target as HTMLElement;
     if (event.key !== "Enter" || target.tagName === "BUTTON" || target.tagName === "TEXTAREA") return;
     event.preventDefault();
+    if (activeTabIndex === tabs.length - 1) {
+      handlePreview();
+      return;
+    }
     nextTab();
   }
 
   return (
-    <form className="space-y-5" onKeyDown={handleFormKeyDown} ref={formRef}>
+    <form className="space-y-5" key={formKey} onKeyDown={handleFormKeyDown} ref={formRef}>
       <PageHeader
         eyebrow="Patient Management"
         title="Patient History"
         description="Past medical, surgical, medication, allergy, and social history."
       />
+
+      <CenterModal
+        description={previewRecord?.id}
+        onOpenChange={(open) => !open && setPreviewRecord(null)}
+        open={Boolean(previewRecord)}
+        title="Patient History Preview"
+      >
+        {previewRecord ? <PatientHistoryPreview record={previewRecord} onFieldChange={handlePreviewFieldChange} /> : null}
+      </CenterModal>
 
       <div className="pt-4">
         <div className="flex gap-1 overflow-x-auto rounded-md bg-surface-muted p-1" role="tablist" aria-label="Patient history sections">
@@ -526,7 +724,7 @@ export function PatientHistoryPage() {
         </div>
 
         {activeTab === "medical" ? (
-          <div className="mt-4">
+          <div className="mt-4" data-history-tab="medical">
             <Section
               action={
                 <Button size="sm" type="button" variant="outline">
@@ -541,8 +739,8 @@ export function PatientHistoryPage() {
                 <Field label="Medical History Notes">
                   <TextArea placeholder="Enter past medical history" />
                 </Field>
-                <div className="space-y-2">
-                  <span className={labelClass}>Known Comorbidities</span>
+                <div className="space-y-2" data-history-field-group>
+                  <span className={labelClass} data-history-field-label>Known Comorbidities</span>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     {["Hypertension", "Diabetes Mellitus", "Ischemic Heart Disease", "COPD / Asthma", "CKD", "Hypothyroidism", "Malignancy", "Others"].map((item) => (
                       <Checkbox key={item} label={item} />
@@ -558,7 +756,7 @@ export function PatientHistoryPage() {
         ) : null}
 
         {activeTab === "surgical" ? (
-          <div className="mt-4">
+          <div className="mt-4" data-history-tab="surgical">
             <Section
               action={
                 <Button size="sm" type="button" variant="outline">
@@ -700,7 +898,7 @@ export function PatientHistoryPage() {
         ) : null}
 
         {activeTab === "medication" ? (
-          <div className="mt-4">
+          <div className="mt-4" data-history-tab="medication">
             <Section
               action={
                 <Button size="sm" type="button" variant="outline">
@@ -742,7 +940,7 @@ export function PatientHistoryPage() {
         ) : null}
 
         {activeTab === "allergy" ? (
-          <div className="mt-4">
+          <div className="mt-4" data-history-tab="allergy">
             <Section icon={ShieldAlert} title="4. Allergy History">
               <div className="space-y-5">
                 <div className="flex flex-wrap gap-5">
@@ -816,7 +1014,7 @@ export function PatientHistoryPage() {
         ) : null}
 
         {activeTab === "social" ? (
-          <div className="mt-4">
+          <div className="mt-4" data-history-tab="social">
             <Section icon={Users} title="5. Social History">
               <div className="space-y-5">
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -985,21 +1183,36 @@ export function PatientHistoryPage() {
 
       <div className="sticky bottom-0 z-20 -mx-4 border-t border-border bg-background/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6">
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <Button onClick={() => toast.info("Patient history entry cancelled.")} size="sm" type="button" variant="outline">
+          <Button onClick={handleCancel} size="sm" type="button" variant="outline">
+            <X className="h-4 w-4" />
             Cancel
           </Button>
           <div className="flex flex-wrap justify-end gap-2">
-            <Button onClick={() => toast.success("Patient history draft saved.")} size="sm" type="button" variant="outline">
+            <Button onClick={handleSaveDraft} size="sm" type="button" variant="outline">
               <Save className="h-4 w-4" />
               Save Draft
             </Button>
-            <Button onClick={() => setActiveTab("medical")} size="sm" type="button" variant="outline">
+            <Button onClick={handleClear} size="sm" type="button" variant="outline">
               <RotateCcw className="h-4 w-4" />
               Clear
             </Button>
-            <Button onClick={nextTab} size="sm" type="button">
-              Save & Continue
-            </Button>
+            {activeTabIndex === tabs.length - 1 ? (
+              <>
+                <Button onClick={handlePreview} size="sm" type="button" variant="outline">
+                  <Eye className="h-4 w-4" />
+                  Preview
+                </Button>
+                <Button onClick={handleSubmit} size="sm" type="button">
+                  Submit
+                  <Send className="h-4 w-4" />
+                </Button>
+              </>
+            ) : (
+              <Button onClick={nextTab} size="sm" type="button">
+                Save & Continue
+                <Send className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
       </div>

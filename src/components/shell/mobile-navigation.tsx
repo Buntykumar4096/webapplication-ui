@@ -51,7 +51,7 @@ export function MobileNavigation() {
           <nav className="min-h-0 flex-1 overflow-auto p-2">
             {visibleItems.map((item) => {
               const Icon = item.icon;
-              const active = pathname === item.route;
+              const active = pathname === item.route || (item.route !== "/dashboard" && pathname.startsWith(`${item.route}/`));
               return (
                 <Link
                   className={cn(

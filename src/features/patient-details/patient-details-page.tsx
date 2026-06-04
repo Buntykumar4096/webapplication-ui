@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  Eye,
   FileBadge,
   FileSearch,
   HeartPulse,
@@ -23,7 +24,19 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/shell/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CenterModal } from "@/components/ui/center-modal";
 import { Input } from "@/components/ui/input";
+import {
+  applyPatientSection,
+  collectPatientSection,
+  findPatientRecord,
+  getPatientRecordValue,
+  readPatientRecords,
+  upsertPatientRecordSection,
+  writePatientRecords,
+  type PatientRecord,
+  type PatientRecordSection,
+} from "@/features/patient-list/patient-records";
 
 const fieldClass = "space-y-1.5";
 const labelClass = "text-xs font-medium text-foreground";
@@ -32,6 +45,7 @@ const radioInputClass =
   "h-4 w-4 shrink-0 appearance-none rounded-full border-2 border-muted-foreground bg-background shadow-sm transition checked:border-primary checked:bg-primary focus:outline-none focus:ring-2 focus:ring-ring/20";
 const selectClass =
   "flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20";
+const decimalPattern = "[0-9]*[.]?[0-9]*";
 const bloodGroupOptions = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"];
 const patientDetailTabs = [
   { id: "basic", label: "1. Basic Demographics" },
@@ -44,6 +58,12 @@ const patientDetailTabs = [
 ] as const;
 
 type PatientDetailTab = (typeof patientDetailTabs)[number]["id"];
+
+function getInitialEditingPatientRecord() {
+  if (typeof window === "undefined") return null;
+  const recordId = new URLSearchParams(window.location.search).get("edit");
+  return recordId ? findPatientRecord(recordId) : null;
+}
 
 function calculateAge(dateOfBirth: string) {
   if (!dateOfBirth) return "";
@@ -78,19 +98,6 @@ function formatDateInput(value: string) {
   const month = digits.slice(2, 4);
   const year = digits.slice(4, 8);
   return [day, month, year].filter(Boolean).join("/");
-}
-
-function dateTextToNative(value: string) {
-  const [day, month, year] = value.split("/");
-  if (!day || !month || !year || year.length !== 4) return "";
-  if (!parseDateValue(value)) return "";
-  return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-}
-
-function nativeDateToText(value: string) {
-  const [year, month, day] = value.split("-");
-  if (!day || !month || !year) return "";
-  return `${day}/${month}/${year}`;
 }
 
 function textDateToParts(value: string) {
@@ -321,14 +328,6 @@ function DateTextInput({
     };
   }, [open]);
 
-  React.useEffect(() => {
-    const nextDate = parseDateValue(currentValue);
-    if (nextDate) {
-      setVisibleMonth(nextDate.getMonth());
-      setVisibleYear(nextDate.getFullYear());
-    }
-  }, [currentValue]);
-
   function selectToday() {
     const today = new Date();
     const nextValue = datePartsToText(today.getDate(), today.getMonth(), today.getFullYear());
@@ -534,8 +533,94 @@ function SearchInput({ placeholder }: { placeholder: string }) {
   );
 }
 
+function PatientDetailsPreview({
+  record,
+  onFieldChange,
+}: {
+  record: PatientRecord;
+  onFieldChange: (tabId: string, fieldIndex: number, value: string) => void;
+}) {
+  const sections = patientDetailTabs.map((tab) => {
+    const section = record.sections.find((item) => item.tabId === tab.id);
+    return section ?? { tabId: tab.id, tabLabel: tab.label, fields: [] };
+  });
+  const patientName = getPatientRecordValue(record, "Patient Name") || "Patient details preview";
+
+  return (
+    <div className="rounded-lg border border-border bg-surface-muted p-3 sm:p-5">
+      <div className="mx-auto w-full max-w-[210mm] overflow-hidden bg-white text-black shadow-soft">
+        <div className="min-h-[297mm] p-6 sm:p-10">
+          <div className="border-b-2 border-black pb-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Plasmit Hospital HMS</div>
+                <h2 className="mt-1 text-2xl font-bold text-black">Patient Details Preview</h2>
+                <p className="mt-1 text-sm text-neutral-600">Review and edit details before final submit.</p>
+              </div>
+              <div className="rounded border border-neutral-300 px-3 py-2 text-right text-xs text-neutral-600">
+                <div className="font-semibold text-black">Draft</div>
+                <div>{patientName}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-7 pt-6">
+            {sections.map((section) => (
+              <section className="break-inside-avoid" key={`preview-doc-${section.tabId}`}>
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="h-px flex-1 bg-neutral-300" />
+                  <h3 className="shrink-0 text-sm font-bold uppercase tracking-wide text-black">{section.tabLabel}</h3>
+                  <div className="h-px flex-1 bg-neutral-300" />
+                </div>
+
+                {section.fields.length ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {section.fields.map((field, index) => (
+                      <label className="block rounded border border-neutral-300 p-2" key={`${section.tabId}-${field.label}-${index}`}>
+                        <span className="block text-[11px] font-semibold uppercase tracking-wide text-neutral-500">{field.label}</span>
+                        <textarea
+                          className="mt-1 min-h-9 w-full resize-y rounded border border-transparent bg-white p-1 text-sm font-medium text-black outline-none transition focus:border-neutral-400"
+                          onChange={(event) => onFieldChange(section.tabId, index, event.target.value)}
+                          value={field.value}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded border border-dashed border-neutral-300 px-3 py-5 text-center text-sm text-neutral-500">
+                    No details filled in this section yet.
+                  </div>
+                )}
+              </section>
+            ))}
+          </div>
+
+          <div className="mt-8 flex items-center justify-between border-t border-neutral-300 pt-4 text-xs text-neutral-500">
+            <span>Editable preview before final submit</span>
+            <span>Generated from Patient Details draft</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mx-auto mt-4 flex w-full max-w-[210mm] justify-end">
+        <Button
+          onClick={() => {
+            toast.success("Patient details submitted.");
+          }}
+          size="sm"
+          type="button"
+        >
+          Submit
+          <Send className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function PatientDetailsPage() {
   const formRef = React.useRef<HTMLFormElement | null>(null);
+  const initialEditingRecord = React.useMemo(() => getInitialEditingPatientRecord(), []);
   const [activeTab, setActiveTab] = React.useState<PatientDetailTab>("basic");
   const [dateOfBirth, setDateOfBirth] = React.useState("");
   const [age, setAge] = React.useState("");
@@ -544,17 +629,61 @@ export function PatientDetailsPage() {
   const [clinicalHeight, setClinicalHeight] = React.useState("");
   const [clinicalWeight, setClinicalWeight] = React.useState("");
   const [formKey, setFormKey] = React.useState(0);
+  const [editingRecordId, setEditingRecordId] = React.useState<string | null>(initialEditingRecord?.id ?? null);
+  const [editingRecord, setEditingRecord] = React.useState<PatientRecord | null>(initialEditingRecord);
+  const [previewRecord, setPreviewRecord] = React.useState<PatientRecord | null>(null);
   const bmi = React.useMemo(() => calculateBmi(height, weight), [height, weight]);
   const clinicalBmi = React.useMemo(() => calculateBmi(clinicalHeight, clinicalWeight), [clinicalHeight, clinicalWeight]);
   const activeTabIndex = patientDetailTabs.findIndex((tab) => tab.id === activeTab);
+
+  React.useEffect(() => {
+    if (!editingRecord || !formRef.current) return;
+    const section = editingRecord.sections.find((item) => item.tabId === activeTab);
+    if (!section) return;
+
+    applyPatientSection(formRef.current, section);
+    applyControlledPatientFields(section);
+  }, [activeTab, editingRecord, formKey]);
 
   function handleDateOfBirthChange(nextDateOfBirth: string) {
     setDateOfBirth(nextDateOfBirth);
     setAge(calculateAge(nextDateOfBirth));
   }
 
+  function applyControlledPatientFields(section: PatientRecordSection) {
+    const valueFor = (label: string) => getPatientRecordValue({ id: "current", updatedAt: "", sections: [section] }, label);
+    if (section.tabId === "basic") {
+      const nextDateOfBirth = valueFor("Date of Birth");
+      if (nextDateOfBirth) {
+        setDateOfBirth(nextDateOfBirth);
+        setAge(valueFor("Age") || calculateAge(nextDateOfBirth));
+      } else {
+        setAge(valueFor("Age"));
+      }
+      setHeight(valueFor("Height"));
+      setWeight(valueFor("Weight"));
+    }
+
+    if (section.tabId === "clinical") {
+      setClinicalHeight(valueFor("Height"));
+      setClinicalWeight(valueFor("Weight"));
+    }
+  }
+
+  function saveCurrentPatientSection() {
+    if (!formRef.current) return null;
+    const currentTab = patientDetailTabs[activeTabIndex];
+    const section = collectPatientSection(formRef.current, currentTab.id, currentTab.label);
+    if (!section.fields.length) return null;
+    const savedRecord = upsertPatientRecordSection(editingRecordId, section);
+    setEditingRecordId(savedRecord.id);
+    setEditingRecord(savedRecord);
+    return savedRecord;
+  }
+
   function goToNextTab() {
     if (!formRef.current?.reportValidity()) return;
+    saveCurrentPatientSection();
     const nextTab = patientDetailTabs[activeTabIndex + 1];
     if (nextTab) {
       setActiveTab(nextTab.id);
@@ -568,6 +697,10 @@ export function PatientDetailsPage() {
     const target = event.target as HTMLElement;
     if (event.key !== "Enter" || target.tagName === "BUTTON" || target.tagName === "TEXTAREA") return;
     event.preventDefault();
+    if (activeTabIndex === patientDetailTabs.length - 1) {
+      handlePreview();
+      return;
+    }
     goToNextTab();
   }
 
@@ -577,7 +710,47 @@ export function PatientDetailsPage() {
   }
 
   function handleSaveDraft() {
+    saveCurrentPatientSection();
     toast.success("Patient details draft saved locally.");
+  }
+
+  function handlePreview() {
+    const savedRecord = saveCurrentPatientSection() ?? editingRecord;
+    if (!savedRecord || !savedRecord.sections.some((section) => section.fields.length)) {
+      toast.warning("Fill patient details before preview.");
+      return;
+    }
+    setPreviewRecord(savedRecord);
+  }
+
+  function handleSubmit() {
+    const savedRecord = saveCurrentPatientSection() ?? editingRecord;
+    if (!savedRecord || !savedRecord.sections.some((section) => section.fields.length)) {
+      toast.warning("Fill patient details before submitting.");
+      return;
+    }
+    toast.success("Patient details submitted.");
+  }
+
+  function handlePreviewFieldChange(tabId: string, fieldIndex: number, value: string) {
+    setPreviewRecord((currentRecord) => {
+      if (!currentRecord) return currentRecord;
+      const nextRecord: PatientRecord = {
+        ...currentRecord,
+        updatedAt: new Date().toISOString(),
+        sections: currentRecord.sections.map((section) =>
+          section.tabId === tabId
+            ? {
+                ...section,
+                fields: section.fields.map((field, index) => (index === fieldIndex ? { ...field, value } : field)),
+              }
+            : section,
+        ),
+      };
+      setEditingRecord(nextRecord);
+      writePatientRecords(readPatientRecords().map((record) => (record.id === nextRecord.id ? nextRecord : record)));
+      return nextRecord;
+    });
   }
 
   function handleClear() {
@@ -587,6 +760,9 @@ export function PatientDetailsPage() {
     setWeight("");
     setClinicalHeight("");
     setClinicalWeight("");
+    setEditingRecordId(null);
+    setEditingRecord(null);
+    setPreviewRecord(null);
     setFormKey((current) => current + 1);
     setActiveTab("basic");
     toast.info("Patient details form cleared.");
@@ -599,6 +775,15 @@ export function PatientDetailsPage() {
         title="Patient Details"
         description="Capture and manage patient demographic, clinical, admission, referral, diagnosis, and administrative information."
       />
+
+      <CenterModal
+        description={previewRecord ? getPatientRecordValue(previewRecord, "Patient Name") || previewRecord.id : undefined}
+        onOpenChange={(open) => !open && setPreviewRecord(null)}
+        open={Boolean(previewRecord)}
+        title="Patient Details Preview"
+      >
+        {previewRecord ? <PatientDetailsPreview record={previewRecord} onFieldChange={handlePreviewFieldChange} /> : null}
+      </CenterModal>
 
       <div className="pt-4">
         <div className="flex gap-1 overflow-x-auto rounded-md bg-surface-muted p-1" role="tablist" aria-label="Patient detail sections">
@@ -619,7 +804,7 @@ export function PatientDetailsPage() {
         </div>
 
         {activeTab === "basic" ? (
-          <div className="mt-4">
+          <div className="mt-4" data-patient-tab="basic">
           <SectionCard icon={UserRound} title="1. Basic Demographics">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
               <Field label="MRN / Patient ID">
@@ -651,8 +836,8 @@ export function PatientDetailsPage() {
                   <span className="text-xs text-muted-foreground">Years</span>
                 </div>
               </Field>
-              <div className="space-y-2">
-                <span className={labelClass}>Gender</span>
+              <div className="space-y-2" data-patient-field-group>
+                <span className={labelClass} data-patient-field-label>Gender</span>
                 <div className="flex flex-wrap gap-4 pt-2">
                   <RadioOption label="Male" name="gender" />
                   <RadioOption label="Female" name="gender" />
@@ -676,7 +861,7 @@ export function PatientDetailsPage() {
                     onInput={(event) => validateNumericInput(event, "Height", true)}
                     onChange={(event) => setHeight(event.target.value)}
                     onPaste={(event) => preventInvalidNumericPaste(event, true)}
-                    pattern="[0-9]*\\.?[0-9]*"
+                    pattern={decimalPattern}
                     title="Height must contain numbers only."
                     value={height}
                   />
@@ -692,7 +877,7 @@ export function PatientDetailsPage() {
                     onInput={(event) => validateNumericInput(event, "Weight", true)}
                     onChange={(event) => setWeight(event.target.value)}
                     onPaste={(event) => preventInvalidNumericPaste(event, true)}
-                    pattern="[0-9]*\\.?[0-9]*"
+                    pattern={decimalPattern}
                     title="Weight must contain numbers only."
                     value={weight}
                   />
@@ -729,7 +914,7 @@ export function PatientDetailsPage() {
         ) : null}
 
         {activeTab === "clinical" ? (
-          <div className="mt-4">
+          <div className="mt-4" data-patient-tab="clinical">
           <SectionCard icon={HeartPulse} title="2. Physical & Clinical Information">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
               <Field label="Blood Group (Reconfirm)">
@@ -749,7 +934,7 @@ export function PatientDetailsPage() {
                     onInput={(event) => validateNumericInput(event, "Height", true)}
                     onChange={(event) => setClinicalHeight(event.target.value)}
                     onPaste={(event) => preventInvalidNumericPaste(event, true)}
-                    pattern="[0-9]*\\.?[0-9]*"
+                    pattern={decimalPattern}
                     title="Height must contain numbers only."
                     value={clinicalHeight}
                   />
@@ -765,7 +950,7 @@ export function PatientDetailsPage() {
                     onInput={(event) => validateNumericInput(event, "Weight", true)}
                     onChange={(event) => setClinicalWeight(event.target.value)}
                     onPaste={(event) => preventInvalidNumericPaste(event, true)}
-                    pattern="[0-9]*\\.?[0-9]*"
+                    pattern={decimalPattern}
                     title="Weight must contain numbers only."
                     value={clinicalWeight}
                   />
@@ -778,8 +963,8 @@ export function PatientDetailsPage() {
                   <span className="text-xs text-muted-foreground">kg/m2</span>
                 </div>
               </Field>
-              <div className="space-y-2">
-                <span className={labelClass}>Bed Sores at Time of Admission</span>
+              <div className="space-y-2" data-patient-field-group>
+                <span className={labelClass} data-patient-field-label>Bed Sores at Time of Admission</span>
                 <div className="grid gap-2 pt-1">
                   <RadioOption label="Present" name="bedSores" />
                   <RadioOption label="Not Present" name="bedSores" />
@@ -802,18 +987,18 @@ export function PatientDetailsPage() {
         ) : null}
 
         {activeTab === "admission" ? (
-          <div className="mt-4">
+          <div className="mt-4" data-patient-tab="admission">
           <SectionCard icon={ClipboardList} title="3. Admission Information">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <div className="space-y-2 md:col-span-2">
-                <span className={labelClass}>Admitted Through</span>
+              <div className="space-y-2 md:col-span-2" data-patient-field-group>
+                <span className={labelClass} data-patient-field-label>Admitted Through</span>
                 <div className="flex flex-wrap gap-6 pt-1">
                   <RadioOption label="ER (Emergency)" name="admittedThrough" />
                   <RadioOption label="OPD (Outpatient Department)" name="admittedThrough" />
                 </div>
               </div>
-              <div className="space-y-2 md:col-span-2">
-                <span className={labelClass}>Source of Admission</span>
+              <div className="space-y-2 md:col-span-2" data-patient-field-group>
+                <span className={labelClass} data-patient-field-label>Source of Admission</span>
                 <div className="flex flex-wrap gap-6 pt-1">
                   <RadioOption label="Fresh Admission" name="sourceAdmission" />
                   <RadioOption label="Transfer Case" name="sourceAdmission" />
@@ -843,7 +1028,7 @@ export function PatientDetailsPage() {
         ) : null}
 
         {activeTab === "referral" ? (
-          <div className="mt-4">
+          <div className="mt-4" data-patient-tab="referral">
           <SectionCard icon={FileBadge} title="4. Referral Information">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1.4fr_1fr]">
               <Field label="Referred By (Dr. / Facility Name)">
@@ -852,8 +1037,8 @@ export function PatientDetailsPage() {
               <Field label="Referred From">
                 <Input />
               </Field>
-              <div className="space-y-2 rounded-md border border-border bg-surface-muted/40 p-3">
-                <span className={labelClass}>Referral Type</span>
+              <div className="space-y-2 rounded-md border border-border bg-surface-muted/40 p-3" data-patient-field-group>
+                <span className={labelClass} data-patient-field-label>Referral Type</span>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 pt-1">
                   <RadioOption label="Self" name="referralType" />
                   <RadioOption label="Doctor" name="referralType" />
@@ -873,7 +1058,7 @@ export function PatientDetailsPage() {
         ) : null}
 
         {activeTab === "diagnosis" ? (
-          <div className="mt-4">
+          <div className="mt-4" data-patient-tab="diagnosis">
           <SectionCard icon={FileSearch} title="5. Diagnosis Information">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <Field label="Primary Diagnosis (ICD Code)">
@@ -882,8 +1067,8 @@ export function PatientDetailsPage() {
               <Field label="ICD Code Description">
                 <Input />
               </Field>
-              <div className="space-y-2">
-                <span className={labelClass}>Diagnosis Type</span>
+              <div className="space-y-2" data-patient-field-group>
+                <span className={labelClass} data-patient-field-label>Diagnosis Type</span>
                 <div className="flex flex-wrap gap-4 pt-2">
                   <RadioOption label="Provisional" name="diagnosisType" />
                   <RadioOption label="Confirmed" name="diagnosisType" />
@@ -908,7 +1093,7 @@ export function PatientDetailsPage() {
         ) : null}
 
         {activeTab === "additional" ? (
-          <div className="mt-4">
+          <div className="mt-4" data-patient-tab="additional">
           <SectionCard icon={HeartPulse} title="6. Additional Clinical Information">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
               <Field label="Allergies">
@@ -933,8 +1118,8 @@ export function PatientDetailsPage() {
                   <option>Regular</option>
                 </select>
               </Field>
-              <div className="space-y-2">
-                <span className={labelClass}>Advance Directive</span>
+              <div className="space-y-2" data-patient-field-group>
+                <span className={labelClass} data-patient-field-label>Advance Directive</span>
                 <div className="flex flex-wrap gap-4 pt-2">
                   <RadioOption label="Yes" name="advanceDirective" />
                   <RadioOption label="No" name="advanceDirective" />
@@ -950,7 +1135,7 @@ export function PatientDetailsPage() {
         ) : null}
 
         {activeTab === "admin" ? (
-          <div className="mt-4">
+          <div className="mt-4" data-patient-tab="admin">
           <SectionCard icon={IdCard} title="7. Administrative Information">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <Field label="Created By">
@@ -994,10 +1179,23 @@ export function PatientDetailsPage() {
               <RotateCcw className="h-4 w-4" />
               Clear
             </Button>
-            <Button onClick={goToNextTab} size="sm" type="button">
-              Save & Continue
-              <Send className="h-4 w-4" />
-            </Button>
+            {activeTabIndex === patientDetailTabs.length - 1 ? (
+              <>
+                <Button onClick={handlePreview} size="sm" type="button" variant="outline">
+                  <Eye className="h-4 w-4" />
+                  Preview
+                </Button>
+                <Button onClick={handleSubmit} size="sm" type="button">
+                  Submit
+                  <Send className="h-4 w-4" />
+                </Button>
+              </>
+            ) : (
+              <Button onClick={goToNextTab} size="sm" type="button">
+                Save & Continue
+                <Send className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
       </div>
