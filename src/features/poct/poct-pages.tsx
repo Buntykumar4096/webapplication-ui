@@ -124,9 +124,11 @@ function yearRangeStart(year: number) {
 }
 
 function yearRangeLabel(start: number) {
-  const end = start + 5;
-  const endLabel = Math.floor(start / 100) === Math.floor(end / 100) ? String(end).slice(2) : String(end);
-  return `${start} - ${endLabel}`;
+  return `${start}-${String(start + 5).slice(-2)}`;
+}
+
+function yearRangePageStart(year: number) {
+  return Math.max(1900, yearRangeStart(year) - 110);
 }
 
 function YearRangePicker({
@@ -141,65 +143,65 @@ function YearRangePicker({
   onToday: () => void;
 }) {
   const currentYear = new Date().getFullYear();
-  const lastYear = Math.max(currentYear + 125, yearRangeStart(visibleYear) + 25);
-  const ranges = React.useMemo(() => Array.from({ length: Math.ceil((lastYear - 1900) / 5) + 1 }, (_, index) => 1900 + index * 5), [lastYear]);
+  const firstYear = 1900;
+  const currentPageStart = yearRangePageStart(currentYear);
+  const [pageStart, setPageStart] = React.useState(currentPageStart);
   const [selectedRangeStart, setSelectedRangeStart] = React.useState<number | null>(null);
+  const ranges = React.useMemo(() => Array.from({ length: 25 }, (_, index) => pageStart + index * 5), [pageStart]);
   const exactYears = selectedRangeStart ? Array.from({ length: 6 }, (_, index) => selectedRangeStart + index) : [];
 
   return (
     <div className="absolute inset-0 z-10 flex flex-col overflow-hidden rounded-lg bg-surface">
       <div className="flex h-full w-full flex-col overflow-hidden">
         <div className="border-b border-border p-3">
-          <div className="flex items-center gap-2 text-base font-semibold text-foreground">
-            <CalendarDays className="h-5 w-5 text-primary" />
-            {selectedRangeStart ? yearRangeLabel(selectedRangeStart) : "Select Year"}
+          <div className="flex items-center justify-between gap-2">
+            <Button aria-label="Previous year ranges" disabled={Boolean(selectedRangeStart) || pageStart <= firstYear} onClick={() => setPageStart((year) => Math.max(firstYear, year - 125))} size="icon" type="button" variant="ghost">
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <CalendarDays className="h-4 w-4 text-primary" />
+              {selectedRangeStart ? yearRangeLabel(selectedRangeStart) : `${pageStart}-${String(pageStart + 125).slice(-2)}`}
+            </div>
+            <Button aria-label="Next year ranges" disabled={Boolean(selectedRangeStart) || pageStart >= currentPageStart} onClick={() => setPageStart((year) => Math.min(currentPageStart, year + 125))} size="icon" type="button" variant="ghost">
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">{selectedRangeStart ? "Choose exact year" : "Choose a year range"}</p>
+          <p className="mt-1 text-center text-xs text-muted-foreground">{selectedRangeStart ? "Choose exact year" : "Choose a 5-year range"}</p>
         </div>
-        <div className="grid flex-1 gap-2 overflow-auto p-3 sm:grid-cols-2">
-          {(selectedRangeStart ? exactYears : ranges).map((value) => {
-            const active = selectedRangeStart ? visibleYear === value : visibleYear >= value && visibleYear <= value + 5;
-            return selectedRangeStart ? (
-              <button
-                className={`min-h-12 rounded-md border px-3 text-sm font-medium transition ${
-                  active ? "border-primary bg-primary/5 text-primary shadow-sm" : "border-border hover:border-primary/50 hover:bg-surface-muted"
-                }`}
-                key={value}
-                onClick={() => {
+        <div className={selectedRangeStart ? "grid flex-1 grid-cols-3 gap-2 p-3" : "grid flex-1 grid-cols-5 grid-rows-5 gap-1.5 p-3"}>
+          {(selectedRangeStart ? exactYears : ranges).map((value) => (
+            <button
+              className={`rounded-md border px-1 text-xs font-medium transition ${
+                selectedRangeStart
+                  ? visibleYear === value
+                    ? "border-primary bg-primary/5 text-primary shadow-sm"
+                    : "border-border hover:border-primary/50 hover:bg-surface-muted"
+                  : visibleYear >= value && visibleYear <= value + 5
+                    ? "border-primary bg-primary/5 text-primary shadow-sm"
+                    : "border-border hover:border-primary/50 hover:bg-surface-muted"
+              }`}
+              key={value}
+              onClick={() => {
+                if (selectedRangeStart) {
                   onSelectYear(value);
                   onClose();
-                }}
-                type="button"
-              >
-                {value}
-              </button>
-            ) : (
-              <button
-                className={`min-h-12 rounded-md border px-3 text-sm font-medium transition ${
-                  active ? "border-primary bg-primary/5 text-primary shadow-sm" : "border-border hover:border-primary/50 hover:bg-surface-muted"
-                }`}
-                key={value}
-                onClick={() => setSelectedRangeStart(value)}
-                type="button"
-              >
-                {yearRangeLabel(value)}
-              </button>
-            );
-          })}
+                } else {
+                  setSelectedRangeStart(value);
+                }
+              }}
+              type="button"
+            >
+              {selectedRangeStart ? value : yearRangeLabel(value)}
+            </button>
+          ))}
         </div>
         <div className="flex items-center justify-between border-t border-border p-3">
           <Button onClick={onToday} type="button" variant="outline">
             Today
           </Button>
           <div className="flex gap-2">
-            {selectedRangeStart ? (
-              <Button onClick={() => setSelectedRangeStart(null)} type="button" variant="outline">
-                Back
-              </Button>
-            ) : null}
-            <Button onClick={onClose} type="button" variant="outline">
-              Close
-            </Button>
+            {selectedRangeStart ? <Button onClick={() => setSelectedRangeStart(null)} type="button" variant="outline">Back</Button> : null}
+            <Button onClick={onClose} type="button" variant="outline">Close</Button>
           </div>
         </div>
       </div>
@@ -294,9 +296,22 @@ function DateTextInput({
     setPopoverStyle({ left, top, width });
   }
 
-  function toggleCalendar() {
+  function openCalendar() {
+    const today = new Date();
     updatePopoverPosition();
-    setOpen((current) => !current);
+    setVisibleMonth(today.getMonth());
+    setVisibleYear(today.getFullYear());
+    setYearPickerOpen(false);
+    setOpen(true);
+  }
+
+  function toggleCalendar() {
+    if (open) {
+      setOpen(false);
+      setYearPickerOpen(false);
+      return;
+    }
+    openCalendar();
   }
 
   function selectDate(day: number) {
@@ -356,10 +371,7 @@ function DateTextInput({
           maxLength={10}
           onBeforeInput={preventInvalidDateInput}
           onChange={handleChange}
-          onFocus={() => {
-            updatePopoverPosition();
-            setOpen(true);
-          }}
+          onFocus={openCalendar}
           onPaste={preventInvalidDatePaste}
           placeholder="DD / MM / YYYY"
           required={required}

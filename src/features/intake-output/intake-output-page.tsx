@@ -101,8 +101,12 @@ const outputRows: RowConfig[] = [
 
 const rowConfigs = [...intakeRows, ...outputRows];
 const editableRows = rowConfigs.filter((row) => !row.section);
-const today = "2026-05-26";
-const defaultFromDate = "2026-05-22";
+const currentDate = new Date();
+const today = dateKeyFromDate(currentDate);
+const defaultFromDateValue = new Date(currentDate);
+defaultFromDateValue.setDate(defaultFromDateValue.getDate() - 4);
+const defaultFromDate = dateKeyFromDate(defaultFromDateValue);
+const maxQuantityMl = 100000;
 const selectClass =
   "flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/20";
 
@@ -162,11 +166,24 @@ function formatDateLabel(value: string) {
   return new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short" }).format(date);
 }
 
+function formatFullDate(value: string) {
+  const date = parseDateKey(value);
+  if (!date) return value;
+  return new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "long", year: "numeric" }).format(date);
+}
+
 function dateKeyFromDate(date: Date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function previousDateKey(value: string) {
+  const date = parseDateKey(value);
+  if (!date) return "";
+  date.setDate(date.getDate() - 1);
+  return dateKeyFromDate(date);
 }
 
 function dateRangeKeys(from: string, to: string) {
@@ -223,9 +240,11 @@ function yearRangeStart(year: number) {
 }
 
 function yearRangeLabel(start: number) {
-  const end = start + 5;
-  const endLabel = Math.floor(start / 100) === Math.floor(end / 100) ? String(end).slice(2) : String(end);
-  return `${start} - ${endLabel}`;
+  return `${start}-${String(start + 5).slice(-2)}`;
+}
+
+function yearRangePageStart(year: number) {
+  return Math.max(1900, yearRangeStart(year) - 110);
 }
 
 function YearRangePicker({
@@ -240,58 +259,65 @@ function YearRangePicker({
   onToday: () => void;
 }) {
   const currentYear = new Date().getFullYear();
-  const lastYear = Math.max(currentYear + 125, yearRangeStart(visibleYear) + 25);
-  const ranges = React.useMemo(() => Array.from({ length: Math.ceil((lastYear - 1900) / 5) + 1 }, (_, index) => 1900 + index * 5), [lastYear]);
+  const firstYear = 1900;
+  const currentPageStart = yearRangePageStart(currentYear);
+  const [pageStart, setPageStart] = React.useState(currentPageStart);
   const [selectedRangeStart, setSelectedRangeStart] = React.useState<number | null>(null);
+  const ranges = React.useMemo(() => Array.from({ length: 25 }, (_, index) => pageStart + index * 5), [pageStart]);
   const exactYears = selectedRangeStart ? Array.from({ length: 6 }, (_, index) => selectedRangeStart + index) : [];
 
   return (
     <div className="absolute inset-0 z-10 flex flex-col overflow-hidden rounded-lg bg-surface">
       <div className="flex h-full w-full flex-col overflow-hidden">
         <div className="border-b border-border p-3">
-          <div className="flex items-center gap-2 text-base font-semibold text-foreground">
-            <CalendarDays className="h-5 w-5 text-primary" />
-            {selectedRangeStart ? yearRangeLabel(selectedRangeStart) : "Select Year"}
+          <div className="flex items-center justify-between gap-2">
+            <Button aria-label="Previous year ranges" disabled={Boolean(selectedRangeStart) || pageStart <= firstYear} onClick={() => setPageStart((year) => Math.max(firstYear, year - 125))} size="icon" type="button" variant="ghost">
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <CalendarDays className="h-4 w-4 text-primary" />
+              {selectedRangeStart ? yearRangeLabel(selectedRangeStart) : `${pageStart}-${String(pageStart + 125).slice(-2)}`}
+            </div>
+            <Button aria-label="Next year ranges" disabled={Boolean(selectedRangeStart) || pageStart >= currentPageStart} onClick={() => setPageStart((year) => Math.min(currentPageStart, year + 125))} size="icon" type="button" variant="ghost">
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">{selectedRangeStart ? "Choose exact year" : "Choose a year range"}</p>
+          <p className="mt-1 text-center text-xs text-muted-foreground">{selectedRangeStart ? "Choose exact year" : "Choose a 5-year range"}</p>
         </div>
-        <div className="grid flex-1 gap-2 overflow-auto p-3 sm:grid-cols-2">
-          {(selectedRangeStart ? exactYears : ranges).map((value) => {
-            const active = selectedRangeStart ? visibleYear === value : visibleYear >= value && visibleYear <= value + 5;
-            return (
-              <button
-                className={`min-h-12 rounded-md border px-3 text-sm font-medium transition ${
-                  active ? "border-primary bg-primary/5 text-primary shadow-sm" : "border-border hover:border-primary/50 hover:bg-surface-muted"
-                }`}
-                key={value}
-                onClick={() => {
-                  if (selectedRangeStart) {
-                    onSelectYear(value);
-                    onClose();
-                  } else {
-                    setSelectedRangeStart(value);
-                  }
-                }}
-                type="button"
-              >
-                {selectedRangeStart ? value : yearRangeLabel(value)}
-              </button>
-            );
-          })}
+        <div className={selectedRangeStart ? "grid flex-1 grid-cols-3 gap-2 p-3" : "grid flex-1 grid-cols-5 grid-rows-5 gap-1.5 p-3"}>
+          {(selectedRangeStart ? exactYears : ranges).map((value) => (
+            <button
+              className={`rounded-md border px-1 text-xs font-medium transition ${
+                selectedRangeStart
+                  ? visibleYear === value
+                    ? "border-primary bg-primary/5 text-primary shadow-sm"
+                    : "border-border hover:border-primary/50 hover:bg-surface-muted"
+                  : visibleYear >= value && visibleYear <= value + 5
+                    ? "border-primary bg-primary/5 text-primary shadow-sm"
+                    : "border-border hover:border-primary/50 hover:bg-surface-muted"
+              }`}
+              key={value}
+              onClick={() => {
+                if (selectedRangeStart) {
+                  onSelectYear(value);
+                  onClose();
+                } else {
+                  setSelectedRangeStart(value);
+                }
+              }}
+              type="button"
+            >
+              {selectedRangeStart ? value : yearRangeLabel(value)}
+            </button>
+          ))}
         </div>
         <div className="flex items-center justify-between border-t border-border p-3">
           <Button onClick={onToday} type="button" variant="outline">
             Today
           </Button>
           <div className="flex gap-2">
-            {selectedRangeStart ? (
-              <Button onClick={() => setSelectedRangeStart(null)} type="button" variant="outline">
-                Back
-              </Button>
-            ) : null}
-            <Button onClick={onClose} type="button" variant="outline">
-              Close
-            </Button>
+            {selectedRangeStart ? <Button onClick={() => setSelectedRangeStart(null)} type="button" variant="outline">Back</Button> : null}
+            <Button onClick={onClose} type="button" variant="outline">Close</Button>
           </div>
         </div>
       </div>
@@ -330,6 +356,10 @@ function sourceTone(source: SourceType) {
 
 function firstEditableCategory(type: FlowType) {
   return editableRows.find((row) => row.type === type)?.label ?? "";
+}
+
+function normalizeQuantityInput(value: string) {
+  return value.replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, 6);
 }
 
 function DateTextInput({ value, onChange }: { value: string; onChange: (value: string) => void }) {
@@ -387,6 +417,24 @@ function DateTextInput({ value, onChange }: { value: string; onChange: (value: s
     }
   }
 
+  function openCalendar() {
+    const now = new Date();
+    updatePopoverPosition();
+    setVisibleMonth(now.getMonth());
+    setVisibleYear(now.getFullYear());
+    setYearPickerOpen(false);
+    setOpen(true);
+  }
+
+  function toggleCalendar() {
+    if (open) {
+      setOpen(false);
+      setYearPickerOpen(false);
+      return;
+    }
+    openCalendar();
+  }
+
   function selectDate(day: number) {
     const iso = dateKeyFromDate(new Date(visibleYear, visibleMonth, day));
     setDisplayValue(isoToText(iso));
@@ -427,20 +475,14 @@ function DateTextInput({ value, onChange }: { value: string; onChange: (value: s
           inputMode="numeric"
           maxLength={10}
           onChange={handleChange}
-          onFocus={() => {
-            updatePopoverPosition();
-            setOpen(true);
-          }}
+          onFocus={openCalendar}
           placeholder="DD / MM / YYYY"
           value={displayValue}
         />
         <button
           aria-label="Open date selector"
           className="absolute inset-y-0 right-0 flex w-9 items-center justify-center rounded-r-md text-muted-foreground hover:text-foreground"
-          onClick={() => {
-            updatePopoverPosition();
-            setOpen((current) => !current);
-          }}
+          onClick={toggleCalendar}
           type="button"
         >
           <CalendarDays className="h-4 w-4" />
@@ -529,10 +571,16 @@ export function IntakeOutputPage() {
   const activeSelectedDate = selectedDate || today;
   const buckets = React.useMemo(() => getBuckets(view), [view]);
   const selectedDayEntries = React.useMemo(() => entries.filter((entry) => entryDateKey(entry) === activeSelectedDate), [entries, activeSelectedDate]);
+  const previousDayEntries = React.useMemo(() => {
+    const previousDay = previousDateKey(activeSelectedDate);
+    return entries.filter((entry) => entryDateKey(entry) === previousDay);
+  }, [entries, activeSelectedDate]);
   const intakeTotal = sumEntries(selectedDayEntries.filter((entry) => entry.type === "intake"));
   const outputTotal = sumEntries(selectedDayEntries.filter((entry) => entry.type === "output"));
   const netTotal = intakeTotal - outputTotal;
-  const previousDayNet = 320;
+  const previousDayIntake = sumEntries(previousDayEntries.filter((entry) => entry.type === "intake"));
+  const previousDayOutput = sumEntries(previousDayEntries.filter((entry) => entry.type === "output"));
+  const previousDayNet = previousDayIntake - previousDayOutput;
 
   const chartData = buckets.map((bucket) => {
     const intake = sumEntries(selectedDayEntries.filter((entry) => entry.type === "intake" && bucketIncludes(bucket, entryHour(entry))));
@@ -566,16 +614,36 @@ export function IntakeOutputPage() {
   }
 
   function saveEntry() {
-    const quantity = Number(draft.quantityMl);
-    const component = draft.component.trim() || draft.category;
+    const component = draft.component.trim();
 
-    if (!draft.category) {
+    if (draft.type !== "intake" && draft.type !== "output") {
+      toast.error("Please select a valid intake/output type.");
+      return;
+    }
+
+    if (!editableRows.some((row) => row.type === draft.type && row.label === draft.category)) {
       toast.error("Please select a component row.");
       return;
     }
 
+    if (!component) {
+      toast.error("Please enter a component name.");
+      return;
+    }
+
+    if (!/^\d+$/.test(draft.quantityMl)) {
+      toast.error("Quantity must contain numbers only.");
+      return;
+    }
+
+    const quantity = Number(draft.quantityMl);
     if (!Number.isFinite(quantity) || quantity <= 0) {
-      toast.error("Please enter a valid quantity in ml.");
+      toast.error("Quantity must be greater than 0 ml.");
+      return;
+    }
+
+    if (quantity > maxQuantityMl) {
+      toast.error(`Quantity cannot be more than ${maxQuantityMl} ml.`);
       return;
     }
 
@@ -584,6 +652,7 @@ export function IntakeOutputPage() {
       return;
     }
 
+    const entryDate = draft.exactTime.slice(0, 10);
     setEntries((current) => {
       const nextEntry = {
         id: `manual-${Date.now()}`,
@@ -603,6 +672,8 @@ export function IntakeOutputPage() {
         nextEntry,
       ];
     });
+    setFromDate((current) => (!current || entryDate < current ? entryDate : current));
+    setToDate((current) => (!current || entryDate > current ? entryDate : current));
     setPopupOpen(false);
     setEditingCell(null);
     toast.success("Intake-output entry saved.");
@@ -610,25 +681,36 @@ export function IntakeOutputPage() {
 
   return (
     <>
-      <PageHeader
-        eyebrow="IPD Nursing"
-        title="Intake-Output Chart"
-        description="Fluid, blood, urine, stool, emesis, drain, and manual intake-output tracking from the workbook requirements."
-        actions={
-          <>
-            <Button variant="outline" onClick={() => window.print()}>
-              <Printer className="h-4 w-4" />
-              Print
-            </Button>
-            <Button onClick={() => openEntryPopup()}>
-              <Plus className="h-4 w-4" />
-              Add I/O
-            </Button>
-          </>
-        }
+      <IntakeOutputPrintReport
+        cumulativeData={cumulativeData}
+        entries={selectedDayEntries}
+        fromDate={fromDate}
+        intakeTotal={intakeTotal}
+        outputTotal={outputTotal}
+        previousDayNet={previousDayNet}
+        selectedDate={activeSelectedDate}
+        toDate={toDate}
       />
 
-      <div className="space-y-4 py-4">
+      <div data-print-hidden="true">
+        <PageHeader
+          eyebrow="IPD Nursing"
+          title="Intake-Output Chart"
+          actions={
+            <>
+              <Button variant="outline" onClick={() => window.print()}>
+                <Printer className="h-4 w-4" />
+                Print
+              </Button>
+              <Button onClick={() => openEntryPopup()}>
+                <Plus className="h-4 w-4" />
+                Add I/O
+              </Button>
+            </>
+          }
+        />
+
+        <div className="space-y-4 py-4">
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Intake" value={intakeTotal} change="ml" context="Selected day total" tone="success" icon={Droplets} />
           <StatCard label="Output" value={outputTotal} change="ml" context="Selected day total" tone="info" icon={FlaskConical} />
@@ -758,7 +840,8 @@ export function IntakeOutputPage() {
               </Card>
             </div>
           </TabsContent>
-        </Tabs>
+          </Tabs>
+        </div>
       </div>
 
       <Dialog.Root open={popupOpen} onOpenChange={setPopupOpen}>
@@ -810,7 +893,20 @@ export function IntakeOutputPage() {
                 </label>
                 <label className="space-y-1 text-sm">
                   <span className="font-medium">Quantity (ml)</span>
-                  <Input inputMode="numeric" value={draft.quantityMl} onChange={(event) => setDraft((current) => ({ ...current, quantityMl: event.target.value }))} placeholder="Number" />
+                  <Input
+                    inputMode="numeric"
+                    max={maxQuantityMl}
+                    min={1}
+                    onChange={(event) => setDraft((current) => ({ ...current, quantityMl: normalizeQuantityInput(event.target.value) }))}
+                    onKeyDown={(event) => {
+                      if (["e", "E", "+", "-", "."].includes(event.key)) event.preventDefault();
+                    }}
+                    pattern="[0-9]*"
+                    placeholder="Number"
+                    step={1}
+                    type="number"
+                    value={draft.quantityMl}
+                  />
                 </label>
                 <label className="space-y-1 text-sm">
                   <span className="font-medium">Exact time</span>
@@ -840,6 +936,124 @@ export function IntakeOutputPage() {
         </Dialog.Portal>
       </Dialog.Root>
     </>
+  );
+}
+
+function IntakeOutputPrintReport({
+  cumulativeData,
+  entries,
+  fromDate,
+  intakeTotal,
+  outputTotal,
+  previousDayNet,
+  selectedDate,
+  toDate,
+}: {
+  cumulativeData: { day: string; intake: number; output: number; balance: number }[];
+  entries: FlowEntry[];
+  fromDate: string;
+  intakeTotal: number;
+  outputTotal: number;
+  previousDayNet: number;
+  selectedDate: string;
+  toDate: string;
+}) {
+  const sortedEntries = [...entries].sort((left, right) => left.exactTime.localeCompare(right.exactTime));
+
+  return (
+    <section className="intake-output-print-report">
+      <div className="border-b-2 border-slate-900 pb-3 text-center">
+        <div className="text-lg font-bold uppercase tracking-wide">Plasmit Hospital</div>
+        <div className="mt-1 text-base font-semibold">Intake-Output Chart</div>
+        <div className="mt-1 text-xs text-slate-600">IPD Nursing Record</div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-x-8 gap-y-2 border-b border-slate-300 pb-3 text-xs">
+        <PrintField label="Record Date" value={formatFullDate(selectedDate)} />
+        <PrintField label="Generated On" value={new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short" }).format(new Date())} />
+        <PrintField label="Cumulative Range" value={`${formatFullDate(fromDate)} to ${formatFullDate(toDate)}`} />
+        <PrintField label="Total Entries" value={String(entries.length)} />
+      </div>
+
+      <div className="mt-4 grid grid-cols-4 border border-slate-400 text-center">
+        <PrintTotal label="Intake" value={intakeTotal} />
+        <PrintTotal label="Output" value={outputTotal} />
+        <PrintTotal label="Net Balance" value={intakeTotal - outputTotal} />
+        <PrintTotal label="Previous Day" value={previousDayNet} />
+      </div>
+
+      <div className="mt-5">
+        <h2 className="mb-2 text-sm font-bold">Selected Day Entries</h2>
+        <table className="w-full border-collapse text-[10px]">
+          <thead>
+            <tr className="bg-slate-100">
+              {["Time", "Type", "Category", "Component", "Quantity", "Source", "Comment"].map((heading) => (
+                <th className="border border-slate-400 px-2 py-1.5 text-left" key={heading}>{heading}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sortedEntries.length ? sortedEntries.map((entry) => (
+              <tr key={entry.id}>
+                <td className="border border-slate-300 px-2 py-1.5">{formatTime(entry.exactTime)}</td>
+                <td className="border border-slate-300 px-2 py-1.5 capitalize">{entry.type}</td>
+                <td className="border border-slate-300 px-2 py-1.5">{entry.category}</td>
+                <td className="border border-slate-300 px-2 py-1.5">{entry.component}</td>
+                <td className="border border-slate-300 px-2 py-1.5 text-right">{entry.quantityMl} ml</td>
+                <td className="border border-slate-300 px-2 py-1.5">{entry.source}</td>
+                <td className="border border-slate-300 px-2 py-1.5">{entry.comment}</td>
+              </tr>
+            )) : (
+              <tr>
+                <td className="border border-slate-300 px-2 py-4 text-center text-slate-500" colSpan={7}>No intake-output entries recorded for this date.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-5">
+        <h2 className="mb-2 text-sm font-bold">Cumulative Daily Summary</h2>
+        <table className="w-full border-collapse text-[10px]">
+          <thead>
+            <tr className="bg-slate-100">
+              {["Date", "Intake", "Output", "Balance"].map((heading) => (
+                <th className="border border-slate-400 px-2 py-1.5 text-left" key={heading}>{heading}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {cumulativeData.map((row) => (
+              <tr key={row.day}>
+                <td className="border border-slate-300 px-2 py-1.5">{formatFullDate(row.day)}</td>
+                <td className="border border-slate-300 px-2 py-1.5">{row.intake} ml</td>
+                <td className="border border-slate-300 px-2 py-1.5">{row.output} ml</td>
+                <td className="border border-slate-300 px-2 py-1.5">{row.balance} ml</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-12 grid grid-cols-3 gap-10 text-center text-[10px]">
+        {["Prepared By", "Verified By", "Authorized Signature"].map((label) => (
+          <div className="border-t border-slate-700 pt-2" key={label}>{label}</div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PrintField({ label, value }: { label: string; value: string }) {
+  return <div><span className="font-semibold">{label}:</span> {value}</div>;
+}
+
+function PrintTotal({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="border-r border-slate-400 px-2 py-3 last:border-r-0">
+      <div className="text-[10px] uppercase tracking-wide text-slate-600">{label}</div>
+      <div className="mt-1 text-base font-bold">{value} ml</div>
+    </div>
   );
 }
 

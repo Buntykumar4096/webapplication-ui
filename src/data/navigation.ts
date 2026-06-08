@@ -4,6 +4,7 @@ import {
   ClipboardPlus,
   Droplets,
   FileClock,
+  FilePenLine,
   LayoutDashboard,
   ListChecks,
   ScanSearch,
@@ -38,6 +39,7 @@ export const navigationItems: NavigationItem[] = [
   { id: "patient-history", label: "Patient History", icon: FileClock, route: "/patient-history", group: "Patient Management", allowedRoles: ["Super Admin", "Hospital Admin", "Doctor", "Nurse", "Receptionist", "Billing Executive", "Management"], status: "ready" },
   { id: "patient-list", label: "Patient Details List", icon: UserRound, route: "/patient-list", group: "Patient Management", allowedRoles: ["Super Admin", "Hospital Admin", "Doctor", "Nurse", "Receptionist", "Billing Executive", "Management"], status: "ready" },
   { id: "patient-history-list", label: "Patient History List", icon: ListChecks, route: "/patient-history-list", group: "Patient Management", allowedRoles: ["Super Admin", "Hospital Admin", "Doctor", "Nurse", "Receptionist", "Billing Executive", "Management"], status: "ready" },
+  { id: "notes", label: "Notes", icon: FilePenLine, route: "/notes", group: "Patient Management", allowedRoles: ["Super Admin", "Hospital Admin", "Doctor", "Nurse", "Management"], status: "ready" },
   { id: "radiology", label: "Radiology", icon: ScanSearch, route: "/radiology", group: "Radiology", allowedRoles: ["Super Admin", "Hospital Admin", "Doctor", "Nurse", "Receptionist", "Radiologist", "Billing Executive", "Management"], status: "ready" },
   { id: "intake-output", label: "Intake-Output", icon: Droplets, route: "/intake-output", group: "IPD Nursing", allowedRoles: ["Super Admin", "Hospital Admin", "Doctor", "Nurse", "Management"], status: "ready" },
   // POCT entries are appended here so the existing sidebar rendering remains unchanged.

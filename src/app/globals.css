@@ -88,11 +88,20 @@ body {
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
+.intake-output-print-report {
+  display: none;
+}
+
 ::selection {
   background: hsl(var(--primary) / 0.18);
 }
 
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
   :root,
   .dark {
     color-scheme: light;
@@ -112,6 +121,29 @@ body {
 
   main {
     padding: 0 !important;
+  }
+
+  .intake-output-print-report {
+    display: block !important;
+    width: 100%;
+    color: #0f172a;
+    background: #fff;
+    font-family: Arial, sans-serif;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .intake-output-print-report table {
+    page-break-inside: auto;
+  }
+
+  .intake-output-print-report thead {
+    display: table-header-group;
+  }
+
+  .intake-output-print-report tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 }
 
