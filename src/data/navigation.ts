@@ -31,6 +31,40 @@ export const roles: Role[] = [
 
 const allRoles = roles;
 
+function notesRoute(category?: string, specialty?: string) {
+  const params = new URLSearchParams();
+  if (category) params.set("category", category);
+  if (specialty) params.set("specialty", specialty);
+  const query = params.toString();
+  return query ? `/notes?${query}` : "/notes";
+}
+
+function noteCategoryMenu(id: string, label: string, specialties: string[]) {
+  return {
+    id: `notes-${id}`,
+    label,
+    route: notesRoute(id),
+    children: [
+      { id: `notes-${id}-all`, label: `All ${label}`, route: notesRoute(id) },
+      ...specialties.map((specialty) => ({
+        id: `notes-${id}-${specialty.toLowerCase().replaceAll(" ", "-")}`,
+        label: specialty,
+        route: notesRoute(id, specialty),
+      })),
+    ],
+  };
+}
+
+const notesMenu = [
+  { id: "notes-all", label: "All Notes", route: "/notes" },
+  noteCategoryMenu("nurse", "Nurse Notes", ["ICU", "Cardiology", "Cardiac Assessment", "Cardiac Rehab", "Burns", "Breast Care", "Aged Care"]),
+  noteCategoryMenu("medical", "Medical Notes", ["Cardiology", "ICU", "Neurology", "Oncology", "Orthopedics", "General Medicine", "Emergency Medicine"]),
+  noteCategoryMenu("pharmacy", "Pharmacy Notes", ["General", "ICU", "Cardiology", "Oncology", "Renal", "Anticoagulation", "Nutrition Support"]),
+  noteCategoryMenu("allied", "Allied Health Notes", ["Physiotherapy", "Nutrition", "Social Work", "Occupational Therapy", "Speech Therapy", "Psychology", "Rehabilitation"]),
+  noteCategoryMenu("additional", "Additional Progress Notes", ["General", "Follow Up", "Care Coordination", "Patient Education", "Phone Call Note", "Family Communication", "Handover", "Case Management"]),
+  { id: "notes-filter", label: "Filter Notes", route: "/notes?filters=open" },
+];
+
 export const navigationItems: NavigationItem[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, route: "/dashboard", group: "Command", allowedRoles: allRoles, status: "ready" },
   { id: "search", label: "Global Search", icon: Search, route: "/search", group: "Command", allowedRoles: allRoles, status: "ready" },
@@ -39,7 +73,7 @@ export const navigationItems: NavigationItem[] = [
   { id: "patient-history", label: "Patient History", icon: FileClock, route: "/patient-history", group: "Patient Management", allowedRoles: ["Super Admin", "Hospital Admin", "Doctor", "Nurse", "Receptionist", "Billing Executive", "Management"], status: "ready" },
   { id: "patient-list", label: "Patient Details List", icon: UserRound, route: "/patient-list", group: "Patient Management", allowedRoles: ["Super Admin", "Hospital Admin", "Doctor", "Nurse", "Receptionist", "Billing Executive", "Management"], status: "ready" },
   { id: "patient-history-list", label: "Patient History List", icon: ListChecks, route: "/patient-history-list", group: "Patient Management", allowedRoles: ["Super Admin", "Hospital Admin", "Doctor", "Nurse", "Receptionist", "Billing Executive", "Management"], status: "ready" },
-  { id: "notes", label: "Notes", icon: FilePenLine, route: "/notes", group: "Patient Management", allowedRoles: ["Super Admin", "Hospital Admin", "Doctor", "Nurse", "Management"], status: "ready" },
+  { id: "notes", label: "Notes", icon: FilePenLine, route: "/notes", group: "Patient Management", allowedRoles: ["Super Admin", "Hospital Admin", "Doctor", "Nurse", "Management"], status: "ready", children: notesMenu },
   { id: "radiology", label: "Radiology", icon: ScanSearch, route: "/radiology", group: "Radiology", allowedRoles: ["Super Admin", "Hospital Admin", "Doctor", "Nurse", "Receptionist", "Radiologist", "Billing Executive", "Management"], status: "ready" },
   { id: "intake-output", label: "Intake-Output", icon: Droplets, route: "/intake-output", group: "IPD Nursing", allowedRoles: ["Super Admin", "Hospital Admin", "Doctor", "Nurse", "Management"], status: "ready" },
   // POCT entries are appended here so the existing sidebar rendering remains unchanged.

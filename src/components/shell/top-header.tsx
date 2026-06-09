@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { Building2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
@@ -13,7 +14,9 @@ import { hospitalContext } from "@/data/mock";
 export function TopHeader() {
   return (
     <header className="flex h-14 items-center gap-2 border-b border-header-border bg-header px-3 md:px-4" data-print-hidden="true">
-      <MobileNavigation />
+      <React.Suspense fallback={null}>
+        <MobileNavigation />
+      </React.Suspense>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <Building2 className="h-4 w-4 text-muted-foreground" />

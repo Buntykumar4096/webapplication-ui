@@ -25,7 +25,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-dvh max-w-full bg-background text-foreground">
       <div className="flex min-h-dvh min-w-0 max-w-full">
-        <AppSidebar collapsed={sidebarCollapsed} onCollapsedChange={handleCollapsedChange} />
+        <React.Suspense fallback={<div className="hidden w-[264px] shrink-0 border-r border-border bg-sidebar lg:block" />}>
+          <AppSidebar collapsed={sidebarCollapsed} onCollapsedChange={handleCollapsedChange} />
+        </React.Suspense>
         <div className="flex min-w-0 flex-1 flex-col">
           <TopHeader />
           <main className="min-w-0 max-w-full flex-1 px-4 pb-8 md:px-6">{children}</main>

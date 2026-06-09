@@ -2,9 +2,11 @@
 
 import * as React from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import { useSearchParams } from "next/navigation";
 import {
   CheckCircle2,
   CheckCheck,
+  ChevronDown,
   ChevronRight,
   ClipboardList,
   Clock3,
@@ -336,12 +338,30 @@ const initialNotes: Note[] = [
   { id: 13, title: "Follow Up Note", category: "Additional Progress Notes", specialty: "Follow Up", author: "Nurse Mary", date: "24 May 2026, 11:10 AM", status: "Draft", priority: "Low" },
   { id: 14, title: "Care Coordination Note", category: "Additional Progress Notes", specialty: "Care Coordination", author: "Nurse Anna", date: "24 May 2026, 09:40 AM", status: "Signed", priority: "Medium" },
   { id: 15, title: "Patient Education Note", category: "Additional Progress Notes", specialty: "Patient Education", author: "Nurse Mary", date: "23 May 2026, 04:20 PM", status: "Signed", priority: "Low" },
-];
-
-const tabItems = [
-  { id: "all", label: "All Notes", icon: FileText },
-  ...categories.map((category) => ({ id: category.id, label: category.shortLabel, icon: category.icon })),
-  { id: "filter", label: "Progress Filter", icon: SlidersHorizontal },
+  { id: 101, title: "Cardiac Assessment Note", category: "Nurse Notes", specialty: "Cardiac Assessment", author: "Nurse Priya", date: "23 May 2026, 02:15 PM", status: "Signed", priority: "High", content: "Cardiac assessment completed. Rhythm stable, peripheral perfusion adequate and chest discomfort absent at rest." },
+  { id: 102, title: "Cardiac Rehabilitation Note", category: "Nurse Notes", specialty: "Cardiac Rehab", author: "Nurse Priya", date: "23 May 2026, 12:30 PM", status: "Draft", priority: "Medium", content: "Patient completed supervised mobilisation and tolerated the planned cardiac rehabilitation activity without distress." },
+  { id: 103, title: "Burn Wound Care Note", category: "Nurse Notes", specialty: "Burns", author: "Nurse Mary", date: "22 May 2026, 05:10 PM", status: "Signed", priority: "High", content: "Burn dressing changed using aseptic technique. Wound bed clean with no new signs of infection." },
+  { id: 104, title: "Breast Care Nursing Note", category: "Nurse Notes", specialty: "Breast Care", author: "Nurse Anna", date: "22 May 2026, 03:45 PM", status: "Pending Review", priority: "Medium", content: "Post-procedure breast care reviewed. Patient advised on wound observation, support garment use and warning signs." },
+  { id: 105, title: "Aged Care Review", category: "Nurse Notes", specialty: "Aged Care", author: "Nurse Mary", date: "22 May 2026, 10:20 AM", status: "Signed", priority: "Medium", content: "Falls risk, skin integrity, hydration and orientation reviewed. Assistance required for transfers and personal care." },
+  { id: 106, title: "ICU Medical Progress Note", category: "Medical Notes", specialty: "ICU", author: "Dr. Smith", date: "23 May 2026, 01:40 PM", status: "Signed", priority: "High", content: "Hemodynamically stable in ICU. Continue close respiratory monitoring and current supportive management.", medicalNoteType: "Progress Note" },
+  { id: 107, title: "Oncology Consult Note", category: "Medical Notes", specialty: "Oncology", author: "Dr. Mehta", date: "22 May 2026, 04:35 PM", status: "Pending Review", priority: "High", content: "Oncology review completed. Treatment response and current blood results discussed with the patient.", medicalNoteType: "Consult Note" },
+  { id: 108, title: "Orthopedic Progress Note", category: "Medical Notes", specialty: "Orthopedics", author: "Dr. William", date: "22 May 2026, 02:25 PM", status: "Signed", priority: "Medium", content: "Pain and limb function improving. Continue protected mobilisation and repeat imaging as planned.", medicalNoteType: "Progress Note" },
+  { id: 109, title: "General Medicine Review", category: "Medical Notes", specialty: "General Medicine", author: "Dr. Smith", date: "22 May 2026, 11:50 AM", status: "Draft", priority: "Medium", content: "General medical review completed. Chronic conditions remain stable and medication plan was reconciled.", medicalNoteType: "Progress Note" },
+  { id: 110, title: "Emergency Medicine Note", category: "Medical Notes", specialty: "Emergency Medicine", author: "Dr. Rao", date: "21 May 2026, 08:15 PM", status: "Signed", priority: "High", content: "Emergency assessment completed. Immediate causes of deterioration addressed and patient transferred for ongoing monitoring.", medicalNoteType: "Procedure Note" },
+  { id: 111, title: "Cardiology Medication Review", category: "Pharmacy Notes", specialty: "Cardiology", author: "Pharmacist John", date: "23 May 2026, 10:35 AM", status: "Signed", priority: "Medium", content: "Cardiac medicines reviewed for dose, duplication and blood pressure effect. No immediate medication safety issue identified." },
+  { id: 112, title: "Oncology Medication Safety Note", category: "Pharmacy Notes", specialty: "Oncology", author: "Pharmacist Anna", date: "22 May 2026, 05:25 PM", status: "Pending Review", priority: "High", content: "Anticancer supportive medicines reviewed against current laboratory results and interaction risks." },
+  { id: 113, title: "Renal Dose Review", category: "Pharmacy Notes", specialty: "Renal", author: "Pharmacist John", date: "22 May 2026, 01:15 PM", status: "Signed", priority: "High", content: "Renal function reviewed. Dose adjustment recommended for medicines cleared primarily by the kidneys." },
+  { id: 114, title: "Anticoagulation Review", category: "Pharmacy Notes", specialty: "Anticoagulation", author: "Pharmacist Anna", date: "21 May 2026, 04:40 PM", status: "Draft", priority: "High", content: "Anticoagulation indication, bleeding risk and recent monitoring results reviewed. Follow-up level requested." },
+  { id: 115, title: "Nutrition Support Pharmacy Note", category: "Pharmacy Notes", specialty: "Nutrition Support", author: "Pharmacist John", date: "21 May 2026, 12:05 PM", status: "Signed", priority: "Medium", content: "Parenteral nutrition ingredients, electrolyte content and infusion compatibility reviewed with the nutrition team." },
+  { id: 116, title: "Occupational Therapy Assessment", category: "Allied Health Notes", specialty: "Occupational Therapy", author: "Therapist Neha", date: "23 May 2026, 09:20 AM", status: "Signed", priority: "Medium", content: "Daily living activities and home safety needs assessed. Adaptive equipment recommendations discussed." },
+  { id: 117, title: "Speech Therapy Review", category: "Allied Health Notes", specialty: "Speech Therapy", author: "Therapist Riya", date: "22 May 2026, 03:10 PM", status: "Pending Review", priority: "High", content: "Speech clarity and swallow safety reviewed. Modified texture and supervised intake remain recommended." },
+  { id: 118, title: "Psychology Session Note", category: "Allied Health Notes", specialty: "Psychology", author: "Dr. Kapoor", date: "22 May 2026, 11:30 AM", status: "Draft", priority: "Medium", content: "Patient discussed treatment-related anxiety. Grounding strategies and short-term coping plan were introduced." },
+  { id: 119, title: "Rehabilitation Progress Review", category: "Allied Health Notes", specialty: "Rehabilitation", author: "Rehab Clinician", date: "21 May 2026, 02:50 PM", status: "Signed", priority: "Medium", content: "Multidisciplinary rehabilitation goals reviewed. Mobility and self-care tolerance continue to improve." },
+  { id: 120, title: "General Progress Update", category: "Additional Progress Notes", specialty: "General", author: "Nurse Anna", date: "23 May 2026, 08:45 AM", status: "Signed", priority: "Medium", content: "General condition remains stable. Current care plan continues with routine observations and symptom review." },
+  { id: 121, title: "Phone Call Note", category: "Additional Progress Notes", specialty: "Phone Call Note", author: "Nurse Mary", date: "22 May 2026, 06:05 PM", status: "Signed", priority: "Medium", content: "Family member contacted by phone and updated on the current care plan, visiting guidance and next review." },
+  { id: 122, title: "Family Communication Note", category: "Additional Progress Notes", specialty: "Family Communication", author: "Nurse Anna", date: "22 May 2026, 02:40 PM", status: "Pending Review", priority: "Medium", content: "Patient consent confirmed and progress discussed with family. Questions about discharge support were addressed." },
+  { id: 123, title: "Clinical Handover Note", category: "Additional Progress Notes", specialty: "Handover", author: "Nurse Mary", date: "21 May 2026, 07:00 PM", status: "Signed", priority: "High", content: "Shift handover completed using SBAR. Pending investigations, mobility assistance and escalation criteria communicated." },
+  { id: 124, title: "Case Management Note", category: "Additional Progress Notes", specialty: "Case Management", author: "Case Manager", date: "21 May 2026, 01:25 PM", status: "Draft", priority: "Medium", content: "Discharge needs, family support and community service referrals reviewed. Follow-up actions assigned to the care team." },
 ];
 
 const medicalNoteTypes: MedicalNoteType[] = [
@@ -560,6 +580,28 @@ function inferAdditionalNoteType(specialty?: string, title?: string): Additional
   return "General Progress Note";
 }
 
+function buildNoteTitle({
+  additionalProgress,
+  alliedHealth,
+  category,
+  medicalNoteType,
+  pharmacy,
+  specialty,
+}: {
+  additionalProgress: AdditionalProgressDocumentation;
+  alliedHealth: AlliedHealthDocumentation;
+  category: NoteCategory;
+  medicalNoteType: MedicalNoteType;
+  pharmacy: PharmacyDocumentation;
+  specialty: string;
+}) {
+  if (category === "Medical Notes") return `${medicalNoteType} - ${specialty}`;
+  if (category === "Pharmacy Notes") return `${pharmacy.noteType} - ${pharmacy.medicationName.trim() || specialty}`;
+  if (category === "Allied Health Notes") return `${specialty} ${alliedHealth.noteType}`;
+  if (category === "Additional Progress Notes") return additionalProgress.noteType;
+  return `${specialty} Nursing Note`;
+}
+
 function getNoteType(note: Note) {
   if (note.medicalNoteType) return note.medicalNoteType;
   if (note.pharmacy?.noteType) return note.pharmacy.noteType;
@@ -605,6 +647,7 @@ function priorityRank(priority: Note["priority"]) {
 }
 
 export function NotesPage() {
+  const searchParams = useSearchParams();
   const [notes, setNotes] = React.useState<Note[]>(initialNotes);
   const [notesLoaded, setNotesLoaded] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState("all");
@@ -627,8 +670,29 @@ export function NotesPage() {
   const [notice, setNotice] = React.useState("");
   const [newNoteOpen, setNewNoteOpen] = React.useState(false);
   const [newNoteCategory, setNewNoteCategory] = React.useState<NoteCategory>("Nurse Notes");
+  const [filterLockedCategory, setFilterLockedCategory] = React.useState<NoteCategory | null>(null);
   const [editingNote, setEditingNote] = React.useState<Note | null>(null);
   const [viewingNote, setViewingNote] = React.useState<Note | null>(null);
+  const activeCategory = categories.find((item) => item.id === activeTab);
+  const requestedCategory = searchParams.get("category");
+  const requestedSpecialty = searchParams.get("specialty");
+  const filtersRequested = searchParams.get("filters") === "open";
+
+  React.useEffect(() => {
+    const nextCategory = categories.find((item) => item.id === requestedCategory);
+    if (nextCategory) {
+      setActiveTab(nextCategory.id);
+      setCategory(nextCategory.label);
+      setFilterLockedCategory(nextCategory.label);
+      setSpecialty(nextCategory.specialties.includes(requestedSpecialty ?? "") ? requestedSpecialty ?? "All Specialties" : "All Specialties");
+      return;
+    }
+
+    setActiveTab("all");
+    setCategory("All Categories");
+    setFilterLockedCategory(null);
+    setSpecialty("All Specialties");
+  }, [requestedCategory, requestedSpecialty]);
 
   React.useEffect(() => {
     const storageKey = "notes-data";
@@ -636,8 +700,19 @@ export function NotesPage() {
     const savedNotes = window.localStorage.getItem(storageKey) ?? window.localStorage.getItem(legacyStorageKey);
     if (savedNotes) {
       try {
-        setNotes(JSON.parse(savedNotes) as Note[]);
-        window.localStorage.setItem(storageKey, savedNotes);
+        const parsedNotes = JSON.parse(savedNotes) as Note[];
+        const specialtySeeds = initialNotes.filter((note) => note.id >= 101);
+        const mergedNotes = [
+          ...parsedNotes,
+          ...specialtySeeds.filter(
+            (seed) =>
+              !parsedNotes.some(
+                (note) => note.category === seed.category && note.specialty === seed.specialty,
+              ),
+          ),
+        ];
+        setNotes(mergedNotes);
+        window.localStorage.setItem(storageKey, JSON.stringify(mergedNotes));
         window.localStorage.removeItem(legacyStorageKey);
       } catch {
         window.localStorage.removeItem(storageKey);
@@ -691,7 +766,7 @@ export function NotesPage() {
   );
 
   function resetFilters() {
-    setCategory("All Categories");
+    setCategory(filterLockedCategory ?? activeCategory?.label ?? "All Categories");
     setSpecialty("All Specialties");
     setAuthor("All Authors");
     setStatus("All Status");
@@ -707,6 +782,20 @@ export function NotesPage() {
     setFollowUpFilter("All Follow-up");
     setEscalationFilter("All Escalation");
     setNoteId("");
+  }
+
+  function changeTab(tabId: string) {
+    setActiveTab(tabId);
+    const nextCategory = categories.find((item) => item.id === tabId);
+    if (nextCategory) {
+      setCategory(nextCategory.label);
+      setFilterLockedCategory(nextCategory.label);
+      setSpecialty("All Specialties");
+    } else if (tabId === "all") {
+      setCategory("All Categories");
+      setFilterLockedCategory(null);
+      setSpecialty("All Specialties");
+    }
   }
 
   function openNewNote(category?: NoteCategory) {
@@ -805,30 +894,6 @@ export function NotesPage() {
         <p className="text-xs text-muted-foreground">Create, view and manage all types of clinical notes</p>
       </div>
 
-      <div className="overflow-x-auto border-b border-border">
-        <div className="flex min-w-max gap-1" role="tablist" aria-label="Notes sections">
-          {tabItems.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                aria-selected={activeTab === tab.id}
-                className={cn(
-                  "flex h-10 items-center gap-2 border-b-2 px-3 text-xs font-semibold outline-none transition focus-visible:ring-2 focus-visible:ring-ring",
-                  activeTab === tab.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground",
-                )}
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                role="tab"
-                type="button"
-              >
-                <Icon className="h-4 w-4" />
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {notice ? (
         <div className="flex items-center justify-between rounded-md border border-success/25 bg-success/10 px-3 py-2 text-xs text-success">
           <span>{notice}</span>
@@ -837,15 +902,14 @@ export function NotesPage() {
       ) : null}
 
       {activeTab === "all" ? (
-        <AllNotesOverview actions={tableActions} notes={notes} onNewNote={() => openNewNote()} onOpenCategory={setActiveTab} onOpenFilter={() => setActiveTab("filter")} />
-      ) : activeTab === "filter" ? (
-        <FilterView
-          allNotes={notes}
+        <AllNotesOverview
           actions={tableActions}
+          allNotes={notes}
           author={author}
           category={category}
           dateType={dateType}
           escalationFilter={escalationFilter}
+          filtersInitiallyExpanded={filtersRequested}
           followUpFilter={followUpFilter}
           fromDate={fromDate}
           notes={filteredNotes}
@@ -876,12 +940,16 @@ export function NotesPage() {
           onToDateChange={setToDate}
           onVisitIdChange={setVisitId}
           onVisitScopeChange={setVisitScope}
+          onNewNote={() => openNewNote()}
+          onOpenCategory={changeTab}
         />
       ) : (
         <CategoryView
           category={categories.find((item) => item.id === activeTab) ?? categories[0]}
           notes={notes}
           onNewNote={openNewNote}
+          onShowAll={() => changeTab("all")}
+          specialty={specialty}
           actions={tableActions}
         />
       )}
@@ -913,154 +981,52 @@ export function NotesPage() {
 
 function AllNotesOverview({
   actions,
+  allNotes,
+  author,
+  category,
+  dateType,
+  escalationFilter,
+  filtersInitiallyExpanded,
+  followUpFilter,
+  fromDate,
   notes,
+  noteId,
+  noteType,
+  priority,
+  query,
+  signer,
+  specialty,
+  status,
+  toDate,
+  visitId,
+  visitScope,
+  onAuthorChange,
+  onCategoryChange,
+  onDateTypeChange,
+  onEscalationFilterChange,
+  onFollowUpFilterChange,
+  onFromDateChange,
+  onNoteIdChange,
+  onNoteTypeChange,
+  onPriorityChange,
+  onQueryChange,
+  onReset,
+  onSignerChange,
+  onSpecialtyChange,
+  onStatusChange,
+  onToDateChange,
+  onVisitIdChange,
+  onVisitScopeChange,
   onNewNote,
   onOpenCategory,
-  onOpenFilter,
 }: {
-  actions: NoteTableActions;
-  notes: Note[];
-  onNewNote: () => void;
-  onOpenCategory: (id: string) => void;
-  onOpenFilter: () => void;
-}) {
-  return (
-    <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-        {categories.map((category) => {
-          const Icon = category.icon;
-          return (
-            <button
-              className="group min-h-44 rounded-lg border border-border bg-surface p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
-              key={category.id}
-              onClick={() => onOpenCategory(category.id)}
-              type="button"
-            >
-              <span className={cn("flex h-10 w-10 items-center justify-center rounded-full", category.soft, category.accent)}>
-                <Icon className="h-5 w-5" />
-              </span>
-              <span className="mt-4 block text-sm font-semibold">{category.label}</span>
-              <span className="mt-1 block min-h-8 text-xs leading-4 text-muted-foreground">{category.description}</span>
-              <span className={cn("mt-4 flex items-center gap-1 text-xs font-semibold", category.accent)}>
-                {category.count} Notes <ChevronRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
-              </span>
-            </button>
-          );
-        })}
-        <button
-          className="group min-h-44 rounded-lg border border-border bg-surface p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
-          onClick={onOpenFilter}
-          type="button"
-        >
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-950/35">
-            <SlidersHorizontal className="h-5 w-5" />
-          </span>
-          <span className="mt-4 block text-sm font-semibold">Progress Notes Filter</span>
-          <span className="mt-1 block min-h-8 text-xs leading-4 text-muted-foreground">Advanced filters to search progress notes</span>
-          <span className="mt-4 flex items-center gap-1 text-xs font-semibold text-primary">
-            Apply Filter <ChevronRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
-          </span>
-        </button>
-      </div>
-
-      <Card>
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <div>
-            <h3 className="text-sm font-semibold">Recent Notes</h3>
-            <p className="text-xs text-muted-foreground">Latest clinical documentation for this encounter</p>
-          </div>
-          <Button size="sm" onClick={onNewNote}>
-            <Plus className="h-4 w-4" /> New Note
-          </Button>
-        </div>
-        <CardContent className="p-0">
-          <NotesTable actions={actions} notes={notes.slice(0, 6)} />
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function CategoryView({
-  actions,
-  category,
-  notes,
-  onNewNote,
-}: {
-  actions: NoteTableActions;
-  category: CategoryConfig;
-  notes: Note[];
-  onNewNote: (category: NoteCategory) => void;
-}) {
-  const [selectedSpecialty, setSelectedSpecialty] = React.useState(category.specialties[0]);
-  const categoryNotes = notes.filter((note) => note.category === category.label);
-  const visibleNotes = categoryNotes.filter((note) => note.specialty === selectedSpecialty);
-  const Icon = category.icon;
-
-  React.useEffect(() => setSelectedSpecialty(category.specialties[0]), [category]);
-
-  return (
-    <Card className="overflow-hidden">
-      <div className="flex flex-col gap-3 border-b border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <span className={cn("flex h-9 w-9 items-center justify-center rounded-full", category.soft, category.accent)}>
-            <Icon className="h-4 w-4" />
-          </span>
-          <div>
-            <h3 className="text-sm font-semibold">{category.label}</h3>
-            <p className="text-xs text-muted-foreground">{category.description}</p>
-          </div>
-        </div>
-        <Button size="sm" onClick={() => onNewNote(category.label)}>
-          <Plus className="h-4 w-4" /> New Note
-        </Button>
-      </div>
-      <div className="grid min-h-[420px] md:grid-cols-[190px_minmax(0,1fr)]">
-        <aside className="border-b border-border bg-surface-muted/45 p-2 md:border-b-0 md:border-r">
-          <div className="mb-2 px-2 text-[11px] font-semibold uppercase text-muted-foreground">Specialty</div>
-          <div className="flex gap-1 overflow-x-auto md:block md:space-y-1">
-            {category.specialties.map((item) => (
-              <button
-                className={cn(
-                  "h-8 shrink-0 rounded px-2 text-left text-xs transition md:w-full",
-                  selectedSpecialty === item ? cn(category.soft, category.accent, "font-semibold") : "text-muted-foreground hover:bg-surface hover:text-foreground",
-                )}
-                key={item}
-                onClick={() => setSelectedSpecialty(item)}
-                type="button"
-              >
-                {item}
-              </button>
-            ))}
-          </div>
-        </aside>
-        <div className="min-w-0">
-          <div className="flex items-center justify-between border-b border-border px-4 py-2">
-            <span className="text-xs font-semibold">{selectedSpecialty}</span>
-            <span className="text-xs text-muted-foreground">{visibleNotes.length} notes</span>
-          </div>
-          {visibleNotes.length ? (
-            <NotesTable actions={actions} notes={visibleNotes} compact />
-          ) : (
-            <div className="flex min-h-72 flex-col items-center justify-center px-4 text-center">
-              <FilePenLine className="h-9 w-9 text-muted-foreground/45" />
-              <p className="mt-3 text-sm font-semibold">No notes in {selectedSpecialty}</p>
-              <p className="mt-1 text-xs text-muted-foreground">Create the first note for this specialty.</p>
-            </div>
-          )}
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-function FilterView(props: {
   actions: NoteTableActions;
   allNotes: Note[];
   author: string;
   category: string;
   dateType: string;
   escalationFilter: string;
+  filtersInitiallyExpanded: boolean;
   followUpFilter: string;
   fromDate: string;
   notes: Note[];
@@ -1091,8 +1057,317 @@ function FilterView(props: {
   onToDateChange: (value: string) => void;
   onVisitIdChange: (value: string) => void;
   onVisitScopeChange: (value: string) => void;
+  onNewNote: () => void;
+  onOpenCategory: (id: string) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+        {categories.map((category) => {
+          const Icon = category.icon;
+          return (
+            <button
+              className="group min-h-44 rounded-lg border border-border bg-surface p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+              key={category.id}
+              onClick={() => onOpenCategory(category.id)}
+              type="button"
+            >
+              <span className={cn("flex h-10 w-10 items-center justify-center rounded-full", category.soft, category.accent)}>
+                <Icon className="h-5 w-5" />
+              </span>
+              <span className="mt-4 block text-sm font-semibold">{category.label}</span>
+              <span className="mt-1 block min-h-8 text-xs leading-4 text-muted-foreground">{category.description}</span>
+              <span className={cn("mt-4 flex items-center gap-1 text-xs font-semibold", category.accent)}>
+                {allNotes.filter((note) => note.category === category.label).length} Notes <ChevronRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <NotesFilterPanel
+        key={filtersInitiallyExpanded ? "filters-open" : "filters-closed"}
+        allNotes={allNotes}
+        author={author}
+        category={category}
+        dateType={dateType}
+        escalationFilter={escalationFilter}
+        followUpFilter={followUpFilter}
+        fromDate={fromDate}
+        noteId={noteId}
+        noteType={noteType}
+        priority={priority}
+        query={query}
+        signer={signer}
+        specialty={specialty}
+        status={status}
+        toDate={toDate}
+        visitId={visitId}
+        visitScope={visitScope}
+        initiallyExpanded={filtersInitiallyExpanded}
+        onAuthorChange={onAuthorChange}
+        onCategoryChange={onCategoryChange}
+        onDateTypeChange={onDateTypeChange}
+        onEscalationFilterChange={onEscalationFilterChange}
+        onFollowUpFilterChange={onFollowUpFilterChange}
+        onFromDateChange={onFromDateChange}
+        onNoteIdChange={onNoteIdChange}
+        onNoteTypeChange={onNoteTypeChange}
+        onPriorityChange={onPriorityChange}
+        onQueryChange={onQueryChange}
+        onReset={onReset}
+        onSignerChange={onSignerChange}
+        onSpecialtyChange={onSpecialtyChange}
+        onStatusChange={onStatusChange}
+        onToDateChange={onToDateChange}
+        onVisitIdChange={onVisitIdChange}
+        onVisitScopeChange={onVisitScopeChange}
+      />
+
+      <Card>
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <div>
+            <h3 className="text-sm font-semibold">Recent Notes</h3>
+            <p className="text-xs text-muted-foreground">{notes.length} matching clinical notes</p>
+          </div>
+          <Button size="sm" onClick={onNewNote}>
+            <Plus className="h-4 w-4" /> New Note
+          </Button>
+        </div>
+        <CardContent className="p-0">
+          <NotesTable actions={actions} notes={notes.slice(0, 6)} />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function NotesFilterPanel(props: {
+  allNotes: Note[];
+  author: string;
+  category: string;
+  dateType: string;
+  escalationFilter: string;
+  followUpFilter: string;
+  fromDate: string;
+  noteId: string;
+  noteType: string;
+  priority: string;
+  query: string;
+  signer: string;
+  specialty: string;
+  status: string;
+  toDate: string;
+  visitId: string;
+  visitScope: string;
+  initiallyExpanded: boolean;
+  onAuthorChange: (value: string) => void;
+  onCategoryChange: (value: string) => void;
+  onDateTypeChange: (value: string) => void;
+  onEscalationFilterChange: (value: string) => void;
+  onFollowUpFilterChange: (value: string) => void;
+  onFromDateChange: (value: string) => void;
+  onNoteIdChange: (value: string) => void;
+  onNoteTypeChange: (value: string) => void;
+  onPriorityChange: (value: string) => void;
+  onQueryChange: (value: string) => void;
+  onReset: () => void;
+  onSignerChange: (value: string) => void;
+  onSpecialtyChange: (value: string) => void;
+  onStatusChange: (value: string) => void;
+  onToDateChange: (value: string) => void;
+  onVisitIdChange: (value: string) => void;
+  onVisitScopeChange: (value: string) => void;
 }) {
   const [searchDraft, setSearchDraft] = React.useState(props.query);
+  const [filtersExpanded, setFiltersExpanded] = React.useState(props.initiallyExpanded);
+  const allSpecialties = Array.from(new Set(props.allNotes.map((note) => note.specialty)));
+  const allAuthors = Array.from(new Set(props.allNotes.map((note) => note.author)));
+  const allSigners = Array.from(new Set(props.allNotes.map((note) => note.signedBy).filter((value): value is string => Boolean(value))));
+  const allNoteTypes = Array.from(new Set(props.allNotes.map(getNoteType)));
+
+  React.useEffect(() => setSearchDraft(props.query), [props.query]);
+
+  function applySearch(event?: React.FormEvent) {
+    event?.preventDefault();
+    props.onQueryChange(searchDraft.trim());
+  }
+
+  function resetAll() {
+    props.onReset();
+    setSearchDraft("");
+  }
+
+  return (
+    <Card>
+      <button
+        aria-controls="progress-notes-overview-filters"
+        aria-expanded={filtersExpanded}
+        className={cn(
+          "flex w-full items-center justify-between gap-3 rounded-t-lg px-4 py-3 text-left outline-none transition-colors hover:bg-surface-muted",
+          "focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+          filtersExpanded && "border-b border-border",
+        )}
+        onClick={() => setFiltersExpanded((current) => !current)}
+        type="button"
+      >
+        <div className="flex items-center gap-2">
+          <SlidersHorizontal className="h-4 w-4 text-primary" />
+          <div>
+            <h3 className="text-sm font-semibold">Filter Notes</h3>
+            <p className="text-xs text-muted-foreground">{filtersExpanded ? "Hide filters" : "Click to show all filters"}</p>
+          </div>
+        </div>
+        <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", filtersExpanded && "rotate-180")} />
+      </button>
+      {filtersExpanded ? <CardContent className="space-y-4" id="progress-notes-overview-filters">
+        <form className="grid gap-3 lg:grid-cols-[minmax(180px,1.4fr)_120px_repeat(3,minmax(140px,1fr))] xl:grid-cols-[minmax(220px,1.5fr)_120px_repeat(4,minmax(140px,1fr))]" onSubmit={applySearch}>
+          <FormField label="Search">
+            <Input onChange={(event) => setSearchDraft(event.target.value)} placeholder="Title, diagnosis, medicine..." value={searchDraft} />
+          </FormField>
+          <FormField label="Note ID">
+            <Input onChange={(event) => props.onNoteIdChange(event.target.value)} placeholder="ID" type="number" value={props.noteId} />
+          </FormField>
+          <FilterSelect label="Category" value={props.category} options={["All Categories", ...categories.map((item) => item.label)]} onChange={props.onCategoryChange} />
+          <FilterSelect label="Note type" value={props.noteType} options={["All Note Types", ...allNoteTypes]} onChange={props.onNoteTypeChange} />
+          <FilterSelect label="Specialty" value={props.specialty} options={["All Specialties", ...allSpecialties]} onChange={props.onSpecialtyChange} />
+          <FilterSelect label="Status" value={props.status} options={["All Status", "Signed", "Draft", "Pending Review"]} onChange={props.onStatusChange} />
+        </form>
+
+        <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-[minmax(280px,1.35fr)_repeat(5,minmax(130px,1fr))]">
+          <FilterRadioGroup label="Priority" name="notes-overview-priority" value={props.priority} options={["All Priorities", "High", "Medium", "Low"]} onChange={props.onPriorityChange} />
+          <FilterSelect label="Author" value={props.author} options={["All Authors", ...allAuthors]} onChange={props.onAuthorChange} />
+          <FilterSelect label="Signed by" value={props.signer} options={["All Signers", ...allSigners]} onChange={props.onSignerChange} />
+          <FilterSelect label="Visit scope" value={props.visitScope} options={["All Patient Visits", "Current Visit", "Specific Visit"]} onChange={props.onVisitScopeChange} />
+          <FilterSelect label="Follow-up" value={props.followUpFilter} options={["All Follow-up", "Required", "Not Required", "Overdue"]} onChange={props.onFollowUpFilterChange} />
+          <FilterSelect label="Escalation" value={props.escalationFilter} options={["All Escalation", "Required", "Not Required"]} onChange={props.onEscalationFilterChange} />
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-[repeat(3,minmax(140px,1fr))_auto_auto]">
+          {props.visitScope === "Specific Visit" ? (
+            <FormField label="Visit ID">
+              <Input onChange={(event) => props.onVisitIdChange(event.target.value)} placeholder="Enter visit ID" value={props.visitId} />
+            </FormField>
+          ) : null}
+          <FilterSelect label="Date type" value={props.dateType} options={["Created Date", "Service Date"]} onChange={props.onDateTypeChange} />
+          <FormField label="From">
+            <Input onChange={(event) => props.onFromDateChange(event.target.value)} type="date" value={props.fromDate} />
+          </FormField>
+          <FormField label="To">
+            <Input onChange={(event) => props.onToDateChange(event.target.value)} type="date" value={props.toDate} />
+          </FormField>
+          <Button className="self-end" variant="outline" onClick={resetAll}>
+            <RotateCcw className="h-4 w-4" /> Reset
+          </Button>
+          <Button className="self-end" onClick={() => applySearch()}>
+            <Search className="h-4 w-4" /> Search
+          </Button>
+        </div>
+      </CardContent> : null}
+    </Card>
+  );
+}
+
+function CategoryView({
+  actions,
+  category,
+  notes,
+  onNewNote,
+  onShowAll,
+  specialty,
+}: {
+  actions: NoteTableActions;
+  category: CategoryConfig;
+  notes: Note[];
+  onNewNote: (category: NoteCategory) => void;
+  onShowAll: () => void;
+  specialty: string;
+}) {
+  const categoryNotes = notes.filter((note) => note.category === category.label);
+  const visibleNotes = specialty === "All Specialties" ? categoryNotes : categoryNotes.filter((note) => note.specialty === specialty);
+  const Icon = category.icon;
+
+  return (
+    <Card className="overflow-hidden">
+      <div className="flex flex-col gap-3 border-b border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <span className={cn("flex h-9 w-9 items-center justify-center rounded-full", category.soft, category.accent)}>
+            <Icon className="h-4 w-4" />
+          </span>
+          <div>
+            <h3 className="text-sm font-semibold">{category.label}</h3>
+            <p className="text-xs text-muted-foreground">{category.description}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 sm:ml-auto">
+          <Button size="sm" variant="outline" onClick={onShowAll}>
+            All Notes
+          </Button>
+          <Button size="sm" onClick={() => onNewNote(category.label)}>
+            <Plus className="h-4 w-4" /> New Note
+          </Button>
+        </div>
+      </div>
+      <div className="min-h-[420px] min-w-0">
+        <div className="flex items-center justify-between border-b border-border px-4 py-2">
+          <span className="text-xs font-semibold">{specialty === "All Specialties" ? `All ${category.shortLabel} specialties` : specialty}</span>
+          <span className="text-xs text-muted-foreground">{visibleNotes.length} notes</span>
+        </div>
+        {visibleNotes.length ? (
+          <NotesTable actions={actions} notes={visibleNotes} compact />
+        ) : (
+          <div className="flex min-h-72 flex-col items-center justify-center px-4 text-center">
+            <FilePenLine className="h-9 w-9 text-muted-foreground/45" />
+            <p className="mt-3 text-sm font-semibold">No notes in {specialty === "All Specialties" ? category.label : specialty}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Create the first note for this specialty.</p>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function FilterView(props: {
+  actions: NoteTableActions;
+  allNotes: Note[];
+  author: string;
+  category: string;
+  dateType: string;
+  escalationFilter: string;
+  followUpFilter: string;
+  fromDate: string;
+  lockedCategory?: string;
+  notes: Note[];
+  noteId: string;
+  noteType: string;
+  priority: string;
+  query: string;
+  signer: string;
+  specialty: string;
+  status: string;
+  toDate: string;
+  visitId: string;
+  visitScope: string;
+  onAuthorChange: (value: string) => void;
+  onCategoryChange: (value: string) => void;
+  onDateTypeChange: (value: string) => void;
+  onEscalationFilterChange: (value: string) => void;
+  onFollowUpFilterChange: (value: string) => void;
+  onFromDateChange: (value: string) => void;
+  onNoteIdChange: (value: string) => void;
+  onNoteTypeChange: (value: string) => void;
+  onPriorityChange: (value: string) => void;
+  onQueryChange: (value: string) => void;
+  onReset: () => void;
+  onSignerChange: (value: string) => void;
+  onSpecialtyChange: (value: string) => void;
+  onStatusChange: (value: string) => void;
+  onToDateChange: (value: string) => void;
+  onVisitIdChange: (value: string) => void;
+  onVisitScopeChange: (value: string) => void;
+}) {
+  const [searchDraft, setSearchDraft] = React.useState(props.query);
+  const [filtersExpanded, setFiltersExpanded] = React.useState(false);
   const [sortOrder, setSortOrder] = React.useState("Newest first");
   const [pageSize, setPageSize] = React.useState(10);
   const [page, setPage] = React.useState(1);
@@ -1137,14 +1412,27 @@ function FilterView(props: {
   return (
     <div className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
       <Card className="h-fit">
-        <div className="border-b border-border px-4 py-3">
+        <button
+          aria-controls="progress-notes-list-filters"
+          aria-expanded={filtersExpanded}
+          className={cn(
+            "flex w-full items-center justify-between gap-3 rounded-t-lg px-4 py-3 text-left outline-none transition-colors hover:bg-surface-muted",
+            "focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+            filtersExpanded && "border-b border-border",
+          )}
+          onClick={() => setFiltersExpanded((current) => !current)}
+          type="button"
+        >
           <div className="flex items-center gap-2">
-            <SlidersHorizontal className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-semibold">Progress Notes Filter</h3>
+            <SlidersHorizontal className="h-4 w-4 shrink-0 text-primary" />
+            <div>
+              <h3 className="text-sm font-semibold">Filter Notes</h3>
+              <p className="mt-1 text-xs text-muted-foreground">{filtersExpanded ? "Hide filters" : "Click to show all filters"}</p>
+            </div>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">Refine the progress notes shown beside the filter.</p>
-        </div>
-        <CardContent className="space-y-4">
+          <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", filtersExpanded && "rotate-180")} />
+        </button>
+        {filtersExpanded ? <CardContent className="space-y-4" id="progress-notes-list-filters">
           <form className="space-y-2" onSubmit={applySearch}>
             <div className="text-[11px] font-semibold uppercase text-muted-foreground">Search</div>
             <Input onChange={(event) => setSearchDraft(event.target.value)} placeholder="Title, diagnosis, medicine, content..." value={searchDraft} />
@@ -1153,7 +1441,11 @@ function FilterView(props: {
 
           <div className="space-y-3 border-t border-border pt-4">
             <div className="text-[11px] font-semibold uppercase text-muted-foreground">Document</div>
-            <FilterSelect label="Category" value={props.category} options={["All Categories", ...categories.map((item) => item.label)]} onChange={props.onCategoryChange} />
+            {props.lockedCategory ? (
+              <ReadOnlyFilterValue label="Category" value={props.lockedCategory} />
+            ) : (
+              <FilterSelect label="Category" value={props.category} options={["All Categories", ...categories.map((item) => item.label)]} onChange={props.onCategoryChange} />
+            )}
             <FilterSelect label="Note type" value={props.noteType} options={["All Note Types", ...allNoteTypes]} onChange={props.onNoteTypeChange} />
             <FilterSelect label="Specialty" value={props.specialty} options={["All Specialties", ...allSpecialties]} onChange={props.onSpecialtyChange} />
           </div>
@@ -1174,7 +1466,7 @@ function FilterView(props: {
             <FilterSelect label="Signed by" value={props.signer} options={["All Signers", ...allSigners]} onChange={props.onSignerChange} />
             <div className="grid grid-cols-2 gap-3">
               <FilterSelect label="Status" value={props.status} options={["All Status", "Signed", "Draft", "Pending Review"]} onChange={props.onStatusChange} />
-              <FilterSelect label="Priority" value={props.priority} options={["All Priorities", "High", "Medium", "Low"]} onChange={props.onPriorityChange} />
+              <FilterRadioGroup label="Priority" name="notes-filter-priority" value={props.priority} options={["All Priorities", "High", "Medium", "Low"]} onChange={props.onPriorityChange} />
               <FilterSelect label="Follow-up" value={props.followUpFilter} options={["All Follow-up", "Required", "Not Required", "Overdue"]} onChange={props.onFollowUpFilterChange} />
               <FilterSelect label="Escalation" value={props.escalationFilter} options={["All Escalation", "Required", "Not Required"]} onChange={props.onEscalationFilterChange} />
             </div>
@@ -1201,7 +1493,7 @@ function FilterView(props: {
               <Search className="h-4 w-4" /> Search
             </Button>
           </div>
-        </CardContent>
+        </CardContent> : null}
       </Card>
 
       <Card className="min-w-0">
@@ -1260,9 +1552,10 @@ function NewNoteModal({
   const [category, setCategory] = React.useState<NoteCategory>(initialCategory);
   const [specialty, setSpecialty] = React.useState(categories[0].specialties[0]);
   const [author, setAuthor] = React.useState("Nurse Mary");
-  const [status, setStatus] = React.useState<NoteStatus>("Draft");
   const [priority, setPriority] = React.useState<Note["priority"]>("Medium");
   const [content, setContent] = React.useState("");
+  const [formError, setFormError] = React.useState("");
+  const [showSigning, setShowSigning] = React.useState(false);
   const [assessment, setAssessment] = React.useState("");
   const [intervention, setIntervention] = React.useState("");
   const [patientResponse, setPatientResponse] = React.useState("");
@@ -1299,7 +1592,6 @@ function NewNoteModal({
   const isAdditionalProgressNote = category === "Additional Progress Notes";
   const hasPatientVisitContext = isMedicalNote || isPharmacyNote || isAlliedHealthNote || isAdditionalProgressNote;
   const isAmendment = isMedicalNote && editingNote?.status === "Signed";
-  const isAdditionalAmendment = isAdditionalProgressNote && editingNote?.status === "Signed";
 
   React.useEffect(() => {
     if (!open) return;
@@ -1318,9 +1610,10 @@ function NewNoteModal({
     setCategory(nextCategory.label);
     setSpecialty(editingNote?.specialty ?? nextCategory.specialties[0]);
     setAuthor(editingNote?.author ?? defaultAuthor);
-    setStatus(editingNote?.status ?? "Draft");
     setPriority(editingNote?.priority ?? "Medium");
     setContent(editingNote?.content ?? "");
+    setFormError("");
+    setShowSigning(false);
     setAssessment(editingNote?.assessment ?? "");
     setIntervention(editingNote?.intervention ?? "");
     setPatientResponse(editingNote?.patientResponse ?? "");
@@ -1362,28 +1655,6 @@ function NewNoteModal({
     });
   }, [editingNote, initialCategory, open]);
 
-  function changeCategory(value: NoteCategory) {
-    const nextCategory = categories.find((item) => item.label === value) ?? categories[0];
-    setCategory(value);
-    setSpecialty(nextCategory.specialties[0]);
-    setSignatureAttested(false);
-    const defaultAuthors: Partial<Record<NoteCategory, string>> = {
-      "Medical Notes": "Dr. Smith",
-      "Pharmacy Notes": "Pharmacist John",
-      "Allied Health Notes": "Allied Health Clinician",
-      "Additional Progress Notes": "Care Team Clinician",
-    };
-    const nextAuthor = defaultAuthors[value];
-    if (nextAuthor) {
-      setAuthor(nextAuthor);
-      setAuthenticatedSigner(nextAuthor);
-      setSignedBy(nextAuthor);
-    }
-    if (value === "Additional Progress Notes") {
-      setAdditionalProgress((current) => ({ ...current, noteType: "General Progress Note" }));
-    }
-  }
-
   function changeSpecialty(value: string) {
     setSpecialty(value);
     if (category === "Additional Progress Notes") {
@@ -1418,7 +1689,25 @@ function NewNoteModal({
 
   function submitNote(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const isSigned = status === "Signed";
+    if (!content.trim()) {
+      setFormError("Clinical note is required.");
+      return;
+    }
+
+    const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+    const isSigned = submitter?.value === "sign";
+    if (isSigned && !signatureAttested) return;
+
+    const nextStatus: NoteStatus = isSigned ? "Signed" : "Draft";
+    const generatedTitle = buildNoteTitle({
+      additionalProgress,
+      alliedHealth,
+      category,
+      medicalNoteType,
+      pharmacy,
+      specialty,
+    });
+
     onSave({
       author: author.trim(),
       assessment: isNurseNote ? assessment.trim() : undefined,
@@ -1433,7 +1722,7 @@ function NewNoteModal({
       patientResponse: isNurseNote ? patientResponse.trim() : undefined,
       amendmentReason: isMedicalNote && isAmendment ? amendmentReason.trim() : undefined,
       additionalProgress: isAdditionalProgressNote ? additionalProgress : undefined,
-      alliedHealth: isAlliedHealthNote ? alliedHealth : undefined,
+      alliedHealth: isAlliedHealthNote ? { ...alliedHealth, sessionDateTime: serviceDateTime } : undefined,
       authenticatedSigner: hasPatientVisitContext ? authenticatedSigner.trim() : undefined,
       encounterId: hasPatientVisitContext ? encounterId.trim() : undefined,
       medicalAssessment: isMedicalNote ? medicalAssessment.trim() : undefined,
@@ -1448,72 +1737,46 @@ function NewNoteModal({
       pulse: isNurseNote ? pulse : undefined,
       safetyRisk: isNurseNote ? safetyRisk.trim() : undefined,
       secondaryDiagnoses: isMedicalNote ? secondaryDiagnoses.trim() : undefined,
-      serviceDateTime: hasPatientVisitContext ? serviceDateTime : undefined,
+      serviceDateTime: serviceDateTime || undefined,
       signatureAttested: isSigned ? signatureAttested : false,
       signedAt: isSigned && signatureAttested ? new Date().toISOString() : undefined,
       signedBy: isSigned && signatureAttested ? (hasPatientVisitContext ? authenticatedSigner.trim() : signedBy.trim()) : undefined,
       specialty,
-      status,
+      status: nextStatus,
       subjective: isMedicalNote ? subjective.trim() : undefined,
-      title: title.trim(),
+      title: title.trim() || generatedTitle,
     });
   }
 
   return (
     <CenterModal
-      className="w-[min(94vw,920px)]"
-      description="Document a clinical update for John Doe's current encounter."
+      className="w-[min(94vw,860px)]"
       onOpenChange={onOpenChange}
       open={open}
-      title={editingNote ? "Edit Note" : "Add New Note"}
+      title={`${editingNote ? "Edit" : "New"} ${category.replace(/ Notes$/, " Note")}`}
     >
-      <form className="space-y-4" onSubmit={submitNote}>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormField label="Note title">
-            <Input
-              autoFocus
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder="e.g. Morning assessment"
-              required
-              value={title}
-            />
-          </FormField>
+      <form className="space-y-3" noValidate onSubmit={submitNote}>
+        {hasPatientVisitContext ? (
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-md border border-border bg-surface-muted/30 px-3 py-2">
+            <div className="text-xs">
+              <span className="text-muted-foreground">Patient</span>
+              <span className="ml-2 font-semibold">John Doe</span>
+              <span className="ml-2 text-muted-foreground">#{patientId}</span>
+            </div>
+            <div className="text-xs">
+              <span className="text-muted-foreground">Visit</span>
+              <span className="ml-2 font-semibold">{encounterId}</span>
+            </div>
+            <label className="ml-auto flex items-center gap-2 text-xs font-semibold">
+              <span className="whitespace-nowrap">Clinician ID</span>
+              <Input className="h-8 w-40" onChange={(event) => setPractitionerId(event.target.value)} placeholder="Enter ID" value={practitionerId} />
+            </label>
+          </div>
+        ) : null}
+
+        <div className={cn("grid gap-3 sm:grid-cols-2", isAdditionalProgressNote ? "lg:grid-cols-3" : "lg:grid-cols-4")}>
           <FormField label="Author">
-            <Input
-              onChange={(event) => setAuthor(event.target.value)}
-              placeholder="Enter author name"
-              required
-              value={author}
-            />
-          </FormField>
-          <FormField label="Category">
-            <select
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-              onChange={(event) => changeCategory(event.target.value as NoteCategory)}
-              value={category}
-            >
-              {categories.map((item) => <option key={item.id} value={item.label}>{item.label}</option>)}
-            </select>
-          </FormField>
-          <FormField label="Specialty">
-            <select
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-              onChange={(event) => changeSpecialty(event.target.value)}
-              value={specialty}
-            >
-              {selectedCategory.specialties.map((item) => <option key={item}>{item}</option>)}
-            </select>
-          </FormField>
-          <FormField label="Status">
-            <select
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-              onChange={(event) => setStatus(event.target.value as NoteStatus)}
-              value={status}
-            >
-              <option>Draft</option>
-              <option>Pending Review</option>
-              <option>Signed</option>
-            </select>
+            <Input onChange={(event) => setAuthor(event.target.value)} placeholder="Enter author name" value={author} />
           </FormField>
           <FormField label="Priority">
             <select
@@ -1526,316 +1789,188 @@ function NewNoteModal({
               <option>High</option>
             </select>
           </FormField>
+          {!isAdditionalProgressNote ? (
+            <FormField label="Specialty">
+              <select
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                onChange={(event) => changeSpecialty(event.target.value)}
+                value={specialty}
+              >
+                {selectedCategory.specialties.map((item) => <option key={item}>{item}</option>)}
+              </select>
+            </FormField>
+          ) : null}
+          <FormField label="Service date and time">
+            <Input onChange={(event) => setServiceDateTime(event.target.value)} type="datetime-local" value={serviceDateTime} />
+          </FormField>
         </div>
 
         {isNurseNote ? (
-          <>
-            <FormSection
-              description="Record measurable findings separately so they can later map to FHIR Observation resources."
-              title="Structured observations"
-            >
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <FormField label="BP systolic (mmHg)">
-                  <Input min="40" max="300" onChange={(event) => setBloodPressureSystolic(event.target.value)} placeholder="120" type="number" value={bloodPressureSystolic} />
-                </FormField>
-                <FormField label="BP diastolic (mmHg)">
-                  <Input min="20" max="200" onChange={(event) => setBloodPressureDiastolic(event.target.value)} placeholder="80" type="number" value={bloodPressureDiastolic} />
-                </FormField>
-                <FormField label="Pulse (beats/min)">
-                  <Input min="20" max="250" onChange={(event) => setPulse(event.target.value)} placeholder="72" type="number" value={pulse} />
-                </FormField>
-                <FormField label="Pain score (0-10)">
-                  <Input min="0" max="10" onChange={(event) => setPainScore(event.target.value)} placeholder="0" type="number" value={painScore} />
-                </FormField>
-              </div>
-            </FormSection>
-
-            <FormSection
-              description="Keep each part distinct so the care delivered and the patient's response are easy to review."
-              title="Structured nursing documentation"
-            >
-              <div className="grid gap-4 sm:grid-cols-2">
-                <ClinicalTextArea label="Assessment" onChange={setAssessment} placeholder="Observed symptoms, condition and nursing findings..." required value={assessment} />
-                <ClinicalTextArea label="Intervention" onChange={setIntervention} placeholder="Nursing actions and care provided..." required value={intervention} />
-                <ClinicalTextArea label="Patient response" onChange={setPatientResponse} placeholder="Response after intervention or change in condition..." required value={patientResponse} />
-                <ClinicalTextArea label="Safety / risk" onChange={setSafetyRisk} placeholder="Falls, pressure injury, aspiration or other identified risks..." required value={safetyRisk} />
-                <ClinicalTextArea label="Communication" onChange={setCommunication} placeholder="Clinician/family notified, handover and instructions..." required value={communication} />
-                <ClinicalTextArea label="Follow-up plan" onChange={setFollowUpPlan} placeholder="Monitoring frequency, escalation and next actions..." required value={followUpPlan} />
-              </div>
-            </FormSection>
-          </>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <FormField label="BP systolic">
+                <Input min="40" max="300" onChange={(event) => setBloodPressureSystolic(event.target.value)} placeholder="120" type="number" value={bloodPressureSystolic} />
+              </FormField>
+              <FormField label="BP diastolic">
+                <Input min="20" max="200" onChange={(event) => setBloodPressureDiastolic(event.target.value)} placeholder="80" type="number" value={bloodPressureDiastolic} />
+              </FormField>
+              <FormField label="Pulse">
+                <Input min="20" max="250" onChange={(event) => setPulse(event.target.value)} placeholder="72" type="number" value={pulse} />
+              </FormField>
+              <FormField label="Pain score">
+                <Input min="0" max="10" onChange={(event) => setPainScore(event.target.value)} placeholder="0" type="number" value={painScore} />
+              </FormField>
+            </div>
         ) : null}
 
         {isMedicalNote ? (
-          <>
-            <FormSection
-              description="Select the physician document type that will later map to LOINC or Oracle Health Millennium Code Set 72."
-              title="Medical note classification"
-            >
-              <div className="grid gap-4 sm:grid-cols-2">
-                <FormField label="Medical note type">
-                  <select
-                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-                    onChange={(event) => setMedicalNoteType(event.target.value as MedicalNoteType)}
-                    value={medicalNoteType}
-                  >
-                    {medicalNoteTypes.map((item) => <option key={item}>{item}</option>)}
-                  </select>
-                </FormField>
-                <FormField label="Service date and time">
-                  <Input onChange={(event) => setServiceDateTime(event.target.value)} required type="datetime-local" value={serviceDateTime} />
-                </FormField>
-              </div>
-            </FormSection>
-
-            <FormSection
-              description="Capture the physician assessment in a consistent SOAP structure."
-              title="Structured medical documentation"
-            >
-              <div className="grid gap-4 sm:grid-cols-2">
-                <ClinicalTextArea label="Subjective" onChange={setSubjective} placeholder="Symptoms, history and information reported by the patient..." required value={subjective} />
-                <ClinicalTextArea label="Objective" onChange={setObjective} placeholder="Examination findings, vitals and reviewed results..." required value={objective} />
-                <ClinicalTextArea label="Assessment" onChange={setMedicalAssessment} placeholder="Clinical impression, differential and current diagnoses..." required value={medicalAssessment} />
-                <ClinicalTextArea label="Plan" onChange={setPlan} placeholder="Treatment, orders, medications, monitoring and follow-up..." required value={plan} />
-              </div>
-            </FormSection>
-
-            <FormSection
-              description="Diagnoses should later be coded and synchronized as FHIR Condition resources."
-              title="Diagnoses"
-            >
-              <div className="grid gap-4 sm:grid-cols-2">
-                <FormField label="Primary diagnosis">
-                  <Input onChange={(event) => setPrimaryDiagnosis(event.target.value)} placeholder="e.g. Essential hypertension" required value={primaryDiagnosis} />
-                </FormField>
-                <FormField label="Secondary diagnoses">
-                  <Input onChange={(event) => setSecondaryDiagnoses(event.target.value)} placeholder="Comma-separated additional diagnoses" value={secondaryDiagnoses} />
-                </FormField>
-              </div>
-            </FormSection>
-
-            {isAmendment ? (
-              <FormSection
-                description="A previously signed medical document must retain its history and explain why the amended version is being created."
-                title="Amendment"
-                tone="warning"
-              >
-                <ClinicalTextArea label="Amendment reason" onChange={setAmendmentReason} placeholder="Describe the correction or additional information..." required value={amendmentReason} />
-              </FormSection>
-            ) : null}
-          </>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <FormField label="Note type">
+                <select
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                  onChange={(event) => setMedicalNoteType(event.target.value as MedicalNoteType)}
+                  value={medicalNoteType}
+                >
+                  {medicalNoteTypes.map((item) => <option key={item}>{item}</option>)}
+                </select>
+              </FormField>
+              <FormField label="Primary diagnosis">
+                <Input onChange={(event) => setPrimaryDiagnosis(event.target.value)} placeholder="e.g. Essential hypertension" value={primaryDiagnosis} />
+              </FormField>
+              <FormField label="Secondary diagnoses">
+                <Input onChange={(event) => setSecondaryDiagnoses(event.target.value)} placeholder="Additional diagnoses" value={secondaryDiagnoses} />
+              </FormField>
+            </div>
         ) : null}
 
         {isPharmacyNote ? (
-          <>
-            <FormSection description="Record the medication being reviewed and its current instructions." title="Medication details">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <FormField label="Pharmacy note type">
-                  <select
-                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-                    onChange={(event) => updatePharmacy("noteType", event.target.value as PharmacyNoteType)}
-                    value={pharmacy.noteType}
-                  >
-                    {pharmacyNoteTypes.map((item) => <option key={item}>{item}</option>)}
-                  </select>
-                </FormField>
-                <FormField label="Medication name">
-                  <Input onChange={(event) => updatePharmacy("medicationName", event.target.value)} placeholder="e.g. Enoxaparin" required value={pharmacy.medicationName} />
-                </FormField>
-                <FormField label="Medication code">
-                  <Input onChange={(event) => updatePharmacy("medicationCode", event.target.value)} placeholder="RxNorm or local code" value={pharmacy.medicationCode} />
-                </FormField>
-                <FormField label="Medication status">
-                  <select
-                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-                    onChange={(event) => updatePharmacy("medicationStatus", event.target.value)}
-                    value={pharmacy.medicationStatus}
-                  >
-                    <option>Active</option>
-                    <option>On hold</option>
-                    <option>Stopped</option>
-                    <option>Completed</option>
-                  </select>
-                </FormField>
-                <FormField label="Service date and time">
-                  <Input onChange={(event) => setServiceDateTime(event.target.value)} required type="datetime-local" value={serviceDateTime} />
-                </FormField>
-                <FormField label="Dose">
-                  <Input onChange={(event) => updatePharmacy("dose", event.target.value)} placeholder="e.g. 40" required value={pharmacy.dose} />
-                </FormField>
-                <FormField label="Dose unit">
-                  <Input onChange={(event) => updatePharmacy("doseUnit", event.target.value)} placeholder="mg, mL, units" required value={pharmacy.doseUnit} />
-                </FormField>
-                <FormField label="Route">
-                  <Input onChange={(event) => updatePharmacy("route", event.target.value)} placeholder="Oral, IV, SC..." required value={pharmacy.route} />
-                </FormField>
-                <FormField label="Frequency">
-                  <Input onChange={(event) => updatePharmacy("frequency", event.target.value)} placeholder="Once daily, BID..." required value={pharmacy.frequency} />
-                </FormField>
-                <FormField label="Start date">
-                  <Input onChange={(event) => updatePharmacy("startDate", event.target.value)} type="date" value={pharmacy.startDate} />
-                </FormField>
-                <FormField label="End date">
-                  <Input onChange={(event) => updatePharmacy("endDate", event.target.value)} type="date" value={pharmacy.endDate} />
-                </FormField>
-              </div>
-            </FormSection>
-
-            <FormSection description="Document the problem identified, clinical evidence and pharmacist recommendation." title="Medication review and intervention">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <ClinicalTextArea label="Review reason" onChange={(value) => updatePharmacy("reviewReason", value)} placeholder="Reason for medication review..." required value={pharmacy.reviewReason} />
-                <ClinicalTextArea label="Clinical indication" onChange={(value) => updatePharmacy("clinicalIndication", value)} placeholder="Condition or reason for treatment..." required value={pharmacy.clinicalIndication} />
-                <ClinicalTextArea label="Medication problem" onChange={(value) => updatePharmacy("medicationProblem", value)} placeholder="Interaction, duplication, dose issue or adverse effect..." required value={pharmacy.medicationProblem} />
-                <FormField label="Interaction / issue severity">
-                  <select
-                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-                    onChange={(event) => updatePharmacy("interactionSeverity", event.target.value)}
-                    value={pharmacy.interactionSeverity}
-                  >
-                    <option>None identified</option>
-                    <option>Low</option>
-                    <option>Moderate</option>
-                    <option>High</option>
-                    <option>Critical</option>
-                  </select>
-                </FormField>
-                <ClinicalTextArea label="Relevant allergies" onChange={(value) => updatePharmacy("relevantAllergy", value)} placeholder="Allergies relevant to this medication..." value={pharmacy.relevantAllergy} />
-                <ClinicalTextArea label="Relevant labs / observations" onChange={(value) => updatePharmacy("relevantLabs", value)} placeholder="eGFR, creatinine, INR, drug levels..." value={pharmacy.relevantLabs} />
-                <ClinicalTextArea label="Pharmacist recommendation" onChange={(value) => updatePharmacy("recommendation", value)} placeholder="Recommended medication or monitoring change..." required value={pharmacy.recommendation} />
-                <ClinicalTextArea label="Prescriber response" onChange={(value) => updatePharmacy("prescriberResponse", value)} placeholder="Discussion and response from prescriber..." value={pharmacy.prescriberResponse} />
-                <FormField label="Recommendation outcome">
-                  <select
-                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-                    onChange={(event) => updatePharmacy("recommendationOutcome", event.target.value)}
-                    value={pharmacy.recommendationOutcome}
-                  >
-                    <option>Pending</option>
-                    <option>Accepted</option>
-                    <option>Partially accepted</option>
-                    <option>Declined</option>
-                    <option>Not applicable</option>
-                  </select>
-                </FormField>
-                <ClinicalTextArea label="Outcome / follow-up" onChange={(value) => updatePharmacy("followUp", value)} placeholder="Monitoring, repeat labs and review date..." required value={pharmacy.followUp} />
-              </div>
-            </FormSection>
-          </>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <FormField label="Medication">
+                <Input onChange={(event) => updatePharmacy("medicationName", event.target.value)} placeholder="Medication name" value={pharmacy.medicationName} />
+              </FormField>
+              <FormField label="Note type">
+                <select
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                  onChange={(event) => updatePharmacy("noteType", event.target.value as PharmacyNoteType)}
+                  value={pharmacy.noteType}
+                >
+                  {pharmacyNoteTypes.map((item) => <option key={item}>{item}</option>)}
+                </select>
+              </FormField>
+            </div>
         ) : null}
 
         {isAlliedHealthNote ? (
-          <>
-            <FormSection description="Capture the reason for care, assessment, treatment and progress toward patient goals." title="Allied health documentation">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <FormField label="Note type">
-                  <select
-                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-                    onChange={(event) => updateAlliedHealth("noteType", event.target.value as AlliedNoteType)}
-                    value={alliedHealth.noteType}
-                  >
-                    {alliedNoteTypes.map((item) => <option key={item}>{item}</option>)}
-                  </select>
-                </FormField>
-                <FormField label="Session date and time">
-                  <Input onChange={(event) => updateAlliedHealth("sessionDateTime", event.target.value)} required type="datetime-local" value={alliedHealth.sessionDateTime} />
-                </FormField>
-                <FormField label="Session duration (minutes)">
-                  <Input min="1" onChange={(event) => updateAlliedHealth("sessionDuration", event.target.value)} required type="number" value={alliedHealth.sessionDuration} />
-                </FormField>
-                <ClinicalTextArea label="Referral / reason for review" onChange={(value) => updateAlliedHealth("referralReason", value)} placeholder="Reason for allied health involvement..." required value={alliedHealth.referralReason} />
-                <ClinicalTextArea label="Initial assessment" onChange={(value) => updateAlliedHealth("initialAssessment", value)} placeholder="Relevant assessment findings..." required value={alliedHealth.initialAssessment} />
-                <ClinicalTextArea label="Functional status" onChange={(value) => updateAlliedHealth("functionalStatus", value)} placeholder="Current function and level of independence..." required value={alliedHealth.functionalStatus} />
-                <ClinicalTextArea label="Identified problems" onChange={(value) => updateAlliedHealth("identifiedProblems", value)} placeholder="Problems and barriers identified..." required value={alliedHealth.identifiedProblems} />
-                <ClinicalTextArea label="Intervention delivered" onChange={(value) => updateAlliedHealth("intervention", value)} placeholder="Treatment or support provided..." required value={alliedHealth.intervention} />
-                <ClinicalTextArea label="Patient response" onChange={(value) => updateAlliedHealth("patientResponse", value)} placeholder="Response and tolerance..." required value={alliedHealth.patientResponse} />
-                <ClinicalTextArea label="Goals" onChange={(value) => updateAlliedHealth("goals", value)} placeholder="Patient-centred treatment goals..." required value={alliedHealth.goals} />
-                <ClinicalTextArea label="Progress toward goals" onChange={(value) => updateAlliedHealth("goalProgress", value)} placeholder="Achieved, improving, unchanged or declined..." required value={alliedHealth.goalProgress} />
-                <ClinicalTextArea label="Education provided" onChange={(value) => updateAlliedHealth("educationProvided", value)} placeholder="Education provided to patient or caregiver..." value={alliedHealth.educationProvided} />
-                <ClinicalTextArea label="Follow-up plan" onChange={(value) => updateAlliedHealth("followUpPlan", value)} placeholder="Next session, referrals and discharge plan..." required value={alliedHealth.followUpPlan} />
-              </div>
-            </FormSection>
-
-            <AlliedSpecialtyFields data={alliedHealth} specialty={specialty} onChange={updateAlliedHealth} />
-          </>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <FormField label="Note type">
+                <select
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                  onChange={(event) => updateAlliedHealth("noteType", event.target.value as AlliedNoteType)}
+                  value={alliedHealth.noteType}
+                >
+                  {alliedNoteTypes.map((item) => <option key={item}>{item}</option>)}
+                </select>
+              </FormField>
+              <FormField label="Duration (minutes)">
+                <Input min="1" onChange={(event) => updateAlliedHealth("sessionDuration", event.target.value)} type="number" value={alliedHealth.sessionDuration} />
+              </FormField>
+            </div>
         ) : null}
 
         {isAdditionalProgressNote ? (
-          <AdditionalProgressFields
-            data={additionalProgress}
-            isAmendment={Boolean(isAdditionalAmendment)}
-            onChange={updateAdditionalProgress}
-            onServiceDateTimeChange={setServiceDateTime}
-            serviceDateTime={serviceDateTime}
-          />
-        ) : null}
-
-        {hasPatientVisitContext ? (
-          <FormSection description="Confirm that this note is being recorded for the correct patient, visit and clinician." title="Patient and visit details">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <FormField label="Patient ID">
-                <Input onChange={(event) => setPatientId(event.target.value)} placeholder="Patient ID" required value={patientId} />
+            <div className={cn("grid gap-3 sm:grid-cols-2", additionalProgress.followUpRequired === "Yes" && "lg:grid-cols-3")}>
+              <FormField label="Note type">
+                <select
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                  onChange={(event) => updateAdditionalProgress("noteType", event.target.value as AdditionalNoteType)}
+                  value={additionalProgress.noteType}
+                >
+                  {additionalNoteTypes.map((item) => <option key={item}>{item}</option>)}
+                </select>
               </FormField>
-              <FormField label="Visit ID">
-                <Input onChange={(event) => setEncounterId(event.target.value)} placeholder="Visit ID" required value={encounterId} />
+              <FormField label="Follow-up">
+                <select
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                  onChange={(event) => updateAdditionalProgress("followUpRequired", event.target.value)}
+                  value={additionalProgress.followUpRequired}
+                >
+                  <option>No</option>
+                  <option>Yes</option>
+                </select>
               </FormField>
-              <FormField label="Clinician ID">
-                <Input onChange={(event) => setPractitionerId(event.target.value)} placeholder="Enter clinician ID" required value={practitionerId} />
-              </FormField>
-              <FormField label="Signing clinician">
-                <Input onChange={(event) => setAuthenticatedSigner(event.target.value)} placeholder="Clinician signing this note" required={status === "Signed"} value={authenticatedSigner} />
-              </FormField>
+              {additionalProgress.followUpRequired === "Yes" ? (
+                <FormField label="Follow-up date">
+                  <Input onChange={(event) => updateAdditionalProgress("followUpDate", event.target.value)} type="date" value={additionalProgress.followUpDate} />
+                </FormField>
+              ) : null}
             </div>
-            <p className="mt-3 text-xs text-muted-foreground">Please verify these details before saving or signing the note.</p>
-          </FormSection>
         ) : null}
 
-        <FormField label={hasPatientVisitContext || isNurseNote ? "Additional clinical narrative (optional)" : "Clinical note"}>
+        <FormField label="Clinical note">
           <textarea
-            className="min-h-28 w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20"
-            onChange={(event) => setContent(event.target.value)}
-            placeholder={hasPatientVisitContext || isNurseNote ? "Add context not already captured above..." : "Enter the clinical note..."}
-            required={!hasPatientVisitContext && !isNurseNote}
+            autoFocus
+            className={cn(
+              "min-h-28 w-full resize-y rounded-md border bg-background px-3 py-2 text-sm outline-none transition placeholder:text-muted-foreground focus:ring-2 focus:ring-ring/20",
+              formError ? "border-destructive focus:border-destructive" : "border-input focus:border-ring",
+            )}
+            onChange={(event) => {
+              setContent(event.target.value);
+              if (formError) setFormError("");
+            }}
+            placeholder="Assessment, action taken, patient response and next plan..."
             value={content}
           />
+          {formError ? <span className="mt-1.5 block text-xs font-medium text-destructive">{formError}</span> : null}
         </FormField>
 
-        {status === "Signed" ? (
-          <FormSection
-            description="This attestation records intent in this prototype. A legally enforceable signature still requires authenticated identity, authorization and an immutable server audit trail."
-            title="Electronic signature attestation"
-            tone="warning"
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
+        {showSigning ? (
+          <div className="grid gap-3 rounded-md border border-warning/35 bg-warning/5 p-3 sm:grid-cols-2">
+            <div>
               <FormField label="Signed by">
                 <Input
                   onChange={(event) => hasPatientVisitContext ? setAuthenticatedSigner(event.target.value) : setSignedBy(event.target.value)}
                   placeholder="Authenticated clinician name"
-                  required
                   value={hasPatientVisitContext ? authenticatedSigner : signedBy}
                 />
               </FormField>
-              <div className="rounded-md border border-border bg-background px-3 py-2 text-xs text-muted-foreground">
-                Signature time will be recorded automatically when the note is saved.
-              </div>
             </div>
-            <label className="mt-3 flex items-start gap-2 rounded-md border border-warning/30 bg-warning/10 p-3 text-xs">
+            <label className="flex items-center gap-2 rounded-md border border-warning/30 bg-background px-3 py-2 text-xs">
               <input
                 checked={signatureAttested}
-                className="mt-0.5 h-4 w-4 rounded border-input"
+                className="h-4 w-4 rounded border-input"
                 onChange={(event) => setSignatureAttested(event.target.checked)}
-                required
                 type="checkbox"
               />
-              <span>I confirm that I am the documented signer, reviewed this note, and attest that the information is accurate and complete.</span>
+              <span>I reviewed this note and confirm it is accurate.</span>
             </label>
-          </FormSection>
+          </div>
         ) : null}
 
-        <div className="flex justify-end gap-2 border-t border-border pt-4">
+        <div className="sticky bottom-0 z-10 -mx-1 flex justify-end gap-2 border-t border-border bg-surface px-1 pt-3">
           <Button onClick={() => onOpenChange(false)} type="button" variant="outline">Cancel</Button>
-          <Button type="submit">
+          <Button name="saveAction" type="submit" value="draft" variant="outline">
             <Save className="h-4 w-4" />
-            {editingNote ? "Update Note" : "Save Note"}
+            Save Draft
           </Button>
+          {showSigning ? (
+            <Button disabled={!signatureAttested} name="saveAction" type="submit" value="sign">
+              <CheckCheck className="h-4 w-4" />
+              Sign & Save
+            </Button>
+          ) : (
+            <Button
+              onClick={() => {
+                if (!content.trim()) {
+                  setFormError("Clinical note is required.");
+                  return;
+                }
+                setShowSigning(true);
+              }}
+              type="button"
+            >
+              <CheckCheck className="h-4 w-4" />
+              Sign & Save
+            </Button>
+          )}
         </div>
       </form>
     </CenterModal>
@@ -2040,48 +2175,19 @@ function AdditionalProgressFields({
   data,
   isAmendment,
   onChange,
-  onServiceDateTimeChange,
-  serviceDateTime,
 }: {
   data: AdditionalProgressDocumentation;
   isAmendment: boolean;
   onChange: <K extends keyof AdditionalProgressDocumentation>(field: K, value: AdditionalProgressDocumentation[K]) => void;
-  onServiceDateTimeChange: (value: string) => void;
-  serviceDateTime: string;
 }) {
   return (
     <>
-      <FormSection description="Choose the purpose of the update and record the current situation and next steps." title="Progress note details">
+      <FormSection description="Add structured context only when the main clinical note needs more detail." title="Progress note details">
         <div className="grid gap-4 sm:grid-cols-2">
-          <FormField label="Note type">
-            <select
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-              onChange={(event) => onChange("noteType", event.target.value as AdditionalNoteType)}
-              value={data.noteType}
-            >
-              {additionalNoteTypes.map((item) => <option key={item}>{item}</option>)}
-            </select>
-          </FormField>
-          <FormField label="Service date and time">
-            <Input onChange={(event) => onServiceDateTimeChange(event.target.value)} required type="datetime-local" value={serviceDateTime} />
-          </FormField>
-          <ClinicalTextArea label="Reason for note" onChange={(value) => onChange("reasonForNote", value)} placeholder="Why this update is being documented..." required value={data.reasonForNote} />
-          <ClinicalTextArea label="Current patient condition" onChange={(value) => onChange("currentCondition", value)} placeholder="Current clinical or care status..." required value={data.currentCondition} />
-          <ClinicalTextArea label="Action taken" onChange={(value) => onChange("actionTaken", value)} placeholder="Action, support or communication completed..." required value={data.actionTaken} />
-          <ClinicalTextArea label="People informed / involved" onChange={(value) => onChange("peopleInformed", value)} placeholder="Patient, family and care team members involved..." required value={data.peopleInformed} />
-          <FormField label="Follow-up required">
-            <select
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-              onChange={(event) => onChange("followUpRequired", event.target.value)}
-              value={data.followUpRequired}
-            >
-              <option>No</option>
-              <option>Yes</option>
-            </select>
-          </FormField>
-          <FormField label="Follow-up date">
-            <Input disabled={data.followUpRequired !== "Yes"} onChange={(event) => onChange("followUpDate", event.target.value)} type="date" value={data.followUpDate} />
-          </FormField>
+          <ClinicalTextArea label="Reason for note" onChange={(value) => onChange("reasonForNote", value)} placeholder="Why this update is being documented..." value={data.reasonForNote} />
+          <ClinicalTextArea label="Current patient condition" onChange={(value) => onChange("currentCondition", value)} placeholder="Current clinical or care status..." value={data.currentCondition} />
+          <ClinicalTextArea label="Action taken" onChange={(value) => onChange("actionTaken", value)} placeholder="Action, support or communication completed..." value={data.actionTaken} />
+          <ClinicalTextArea label="People informed / involved" onChange={(value) => onChange("peopleInformed", value)} placeholder="Patient, family and care team members involved..." value={data.peopleInformed} />
         </div>
       </FormSection>
 
@@ -3000,6 +3106,58 @@ function FilterSelect({
         {options.map((option) => <option key={option}>{option}</option>)}
       </select>
     </label>
+  );
+}
+
+function ReadOnlyFilterValue({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <span className="mb-1 block text-[11px] font-semibold text-muted-foreground">{label}</span>
+      <div className="flex h-9 w-full min-w-0 items-center rounded-md border border-input bg-surface-muted px-3 text-xs font-semibold text-foreground">
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function FilterRadioGroup({
+  label,
+  name,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  name: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <fieldset>
+      <legend className="mb-1 block text-[11px] font-semibold text-muted-foreground">{label}</legend>
+      <div className="flex min-h-9 flex-wrap items-center gap-1.5 rounded-md border border-input bg-background px-2 py-1.5">
+        {options.map((option) => (
+          <label
+            className={cn(
+              "flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-2 text-xs transition",
+              value === option ? "bg-primary/10 font-semibold text-primary" : "text-muted-foreground hover:bg-surface-muted",
+            )}
+            key={option}
+          >
+            <input
+              checked={value === option}
+              className="h-3.5 w-3.5 accent-primary"
+              name={name}
+              onChange={() => onChange(option)}
+              type="radio"
+              value={option}
+            />
+            <span>{option}</span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
   );
 }
 

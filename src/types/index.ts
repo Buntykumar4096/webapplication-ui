@@ -15,6 +15,13 @@ export type Role =
 
 export type StatusTone = "success" | "warning" | "danger" | "info" | "critical" | "muted";
 
+export type NavigationChildItem = {
+  id: string;
+  label: string;
+  route: string;
+  children?: NavigationChildItem[];
+};
+
 export type NavigationItem = {
   id: string;
   label: string;
@@ -23,6 +30,7 @@ export type NavigationItem = {
   group: string;
   allowedRoles: Role[];
   status?: "ready" | "planned";
+  children?: NavigationChildItem[];
 };
 
 export type NotificationPriority = "high" | "medium" | "low";

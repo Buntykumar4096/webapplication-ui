@@ -3,20 +3,23 @@
 import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Cross, Menu, X } from "lucide-react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { ChevronDown, Cross, Menu, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useRole } from "@/components/providers/role-provider";
 import { RoleSwitcher } from "@/components/shell/role-switcher";
 import { navigationItems } from "@/data/navigation";
 import { cn } from "@/lib/utils";
+import type { NavigationChildItem, NavigationItem } from "@/types";
 
 export function MobileNavigation() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { role } = useRole();
   const visibleItems = navigationItems.filter((item) => item.allowedRoles.includes(role));
+  const currentRoute = searchParams.size ? `${pathname}?${searchParams.toString()}` : pathname;
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
@@ -49,27 +52,159 @@ export function MobileNavigation() {
             <RoleSwitcher className="w-full border-border bg-sidebar text-sidebar-foreground hover:bg-sidebar-active/10" />
           </div>
           <nav className="min-h-0 flex-1 overflow-auto p-2">
-            {visibleItems.map((item) => {
-              const Icon = item.icon;
-              const active = pathname === item.route || (item.route !== "/dashboard" && pathname.startsWith(`${item.route}/`));
-              return (
-                <Link
-                  className={cn(
-                    "flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium",
-                    active ? "bg-sidebar-active text-sidebar-active-foreground" : "hover:bg-sidebar-active/10",
-                  )}
-                  href={item.route}
-                  key={item.id}
-                  onClick={() => setOpen(false)}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              );
-            })}
+            {visibleItems.map((item) => (
+              <MobileNavigationItem
+                currentRoute={currentRoute}
+                item={item}
+                key={`${item.id}:${currentRoute}`}
+                onNavigate={() => setOpen(false)}
+                pathname={pathname}
+              />
+            ))}
           </nav>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
   );
+}
+
+function MobileNavigationItem({
+  currentRoute,
+  item,
+  onNavigate,
+  pathname,
+}: {
+  currentRoute: string;
+  item: NavigationItem;
+  onNavigate: () => void;
+  pathname: string;
+}) {
+  const Icon = item.icon;
+  const active = item.children?.length
+    ? isNavigationTreeActive(item, currentRoute)
+    : pathname === item.route || (item.route !== "/dashboard" && pathname.startsWith(`${item.route}/`));
+  const [expanded, setExpanded] = useState(active);
+
+  if (!item.children?.length) {
+    return (
+      <Link
+        className={cn(
+          "flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium",
+          active ? "bg-sidebar-active text-sidebar-active-foreground" : "hover:bg-sidebar-active/10",
+        )}
+        href={item.route}
+        onClick={onNavigate}
+      >
+        <Icon className="h-4 w-4" />
+        {item.label}
+      </Link>
+    );
+  }
+
+  return (
+    <div>
+      <button
+        aria-expanded={expanded}
+        className={cn(
+          "flex h-10 w-full items-center gap-3 rounded-md px-3 text-sm font-medium",
+          active ? "bg-sidebar-active/15 text-sidebar-active-foreground" : "hover:bg-sidebar-active/10",
+        )}
+        onClick={() => setExpanded((current) => !current)}
+        type="button"
+      >
+        <Icon className="h-4 w-4" />
+        <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+        <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", expanded && "rotate-180")} />
+      </button>
+      {expanded ? (
+        <div className="ml-5 mt-1 space-y-1 border-l border-sidebar-foreground/15 pl-2">
+          {item.children.map((child) => (
+            <MobileChildItem
+              currentRoute={currentRoute}
+              item={child}
+              key={`${child.id}:${currentRoute}`}
+              onNavigate={onNavigate}
+              pathname={pathname}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function MobileChildItem({
+  currentRoute,
+  item,
+  onNavigate,
+  pathname,
+}: {
+  currentRoute: string;
+  item: NavigationChildItem;
+  onNavigate: () => void;
+  pathname: string;
+}) {
+  const active = isNavigationTreeActive(item, currentRoute);
+  const [expanded, setExpanded] = useState(active);
+
+  if (item.children?.length) {
+    return (
+      <div>
+        <div
+          className={cn(
+            "flex min-h-9 w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium",
+            active ? "text-sidebar-active-foreground" : "hover:bg-sidebar-active/10",
+          )}
+        >
+          <Link className="min-w-0 flex-1 truncate" href={item.route} onClick={onNavigate}>
+            {item.label}
+          </Link>
+          <button
+            aria-expanded={expanded}
+            aria-label={`${expanded ? "Collapse" : "Expand"} ${item.label}`}
+            className="rounded p-1"
+            onClick={() => setExpanded((current) => !current)}
+            type="button"
+          >
+            <ChevronDown className={cn("h-3 w-3 transition-transform", expanded && "rotate-180")} />
+          </button>
+        </div>
+        {expanded ? (
+          <div className="ml-2 space-y-0.5 border-l border-sidebar-foreground/15 pl-2">
+            {item.children.map((child) => (
+              <MobileChildItem
+                currentRoute={currentRoute}
+                item={child}
+                key={`${child.id}:${currentRoute}`}
+                onNavigate={onNavigate}
+                pathname={pathname}
+              />
+            ))}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  const exactActive = isNavigationRouteActive(item.route, currentRoute);
+  return (
+    <Link
+      className={cn(
+        "flex min-h-9 items-center rounded-md px-2 py-1.5 text-xs",
+        exactActive ? "bg-sidebar-active text-sidebar-active-foreground" : "hover:bg-sidebar-active/10",
+      )}
+      href={item.route}
+      onClick={onNavigate}
+    >
+      {item.label}
+    </Link>
+  );
+}
+
+function isNavigationRouteActive(route: string, currentRoute: string) {
+  return currentRoute === route;
+}
+
+function isNavigationTreeActive(item: NavigationChildItem | NavigationItem, currentRoute: string): boolean {
+  return isNavigationRouteActive(item.route, currentRoute) || Boolean(item.children?.some((child) => isNavigationTreeActive(child, currentRoute)));
 }
