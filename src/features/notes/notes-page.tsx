@@ -34,15 +34,46 @@ import { CenterModal } from "@/components/ui/center-modal";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-type NoteCategory = "Nurse Notes" | "Medical Notes" | "Pharmacy Notes" | "Allied Health Notes" | "Additional Progress Notes";
+type NoteCategory =
+  | "Nurse Notes"
+  | "Medical (ED Notes)"
+  | "Surgery Notes"
+  | "Discharge Summary"
+  | "Pharmacy Notes"
+  | "Allied Health Notes"
+  | "Additional Progress Notes";
 type NoteStatus = "Signed" | "Draft" | "Pending Review";
-type MedicalNoteType = "Progress Note" | "Consult Note" | "Discharge Summary" | "Admission History and Physical" | "Procedure Note";
+type MedicalNoteType =
+  | "Progress Note"
+  | "Consult Note"
+  | "Procedure Note"
+  | "Consultant Notes"
+  | "Morning Ward Round"
+  | "Evening Ward Round"
+  | "Operating Notes"
+  | "Surgical Notes"
+  | "Anesthesia Notes"
+  | "End-of-Life Care Notes";
 type PharmacyNoteType = "Medication Review" | "Medication Reconciliation" | "Drug Interaction" | "Dose Adjustment" | "Adverse Drug Reaction" | "Medication Counseling" | "Anticoagulation Review" | "Renal Dose Review";
-type AlliedNoteType = "Initial Assessment" | "Treatment Session" | "Progress Review" | "Discharge Summary";
-type AdditionalNoteType = "General Progress Note" | "Follow-up Note" | "Care Coordination Note" | "Patient Education Note" | "Phone Call Note" | "Family Communication Note" | "Handover Note" | "Case Management Note";
+type AlliedNoteType = "Initial Assessment" | "Treatment Session" | "Progress Review" | "Plan";
+type AdditionalNoteType =
+  | "General Progress Note"
+  | "Follow-up Note"
+  | "Phone Call Note"
+  | "Family Meeting Notes"
+  | "Handover Note"
+  | "Case Management Note"
+  | "Morning Round"
+  | "Evening Round"
+  | "Consultant Notes"
+  | "Care Coordination Note"
+  | "Patient Education Note";
 
 type PharmacyDocumentation = {
   noteType: PharmacyNoteType;
+  medicationPreviousToAdmission: string;
+  medicationCurrently: string;
+  medicationAtDischarge: string;
   medicationName: string;
   medicationCode: string;
   dose: string;
@@ -204,6 +235,24 @@ type AdditionalProgressDocumentation = {
   amendmentReason: string;
 };
 
+type DischargeSummaryDocumentation = {
+  consultantName: string;
+  juniorDoctorName: string;
+  dischargeDateTime: string;
+  team: string;
+  opd: string;
+  presentingComplaints: string;
+  courseDuringHospital: string;
+  bloodInvestigations: string;
+  microbiologicalInvestigations: string;
+  radiologicalInvestigations: string;
+  dischargePlan: string;
+  medicationsOnDischarge: string;
+  followUp: string;
+  followUpWeeks: string;
+  followUpDoctor: string;
+};
+
 type Note = {
   id: number;
   title: string;
@@ -224,6 +273,11 @@ type Note = {
   bloodPressureDiastolic?: string;
   pulse?: string;
   painScore?: string;
+  temperature?: string;
+  respiratoryRate?: string;
+  spo2?: string;
+  glucose?: string;
+  consciousnessLevel?: string;
   signedBy?: string;
   signedAt?: string;
   signatureAttested?: boolean;
@@ -243,6 +297,7 @@ type Note = {
   pharmacy?: PharmacyDocumentation;
   alliedHealth?: AlliedHealthDocumentation;
   additionalProgress?: AdditionalProgressDocumentation;
+  dischargeSummary?: DischargeSummaryDocumentation;
 };
 
 type CategoryConfig = {
@@ -274,18 +329,40 @@ const categories: CategoryConfig[] = [
     icon: HeartPulse,
     accent: "text-blue-600",
     soft: "bg-blue-50 dark:bg-blue-950/35",
-    specialties: ["ICU", "Cardiology", "Cardiac Assessment", "Cardiac Rehab", "Burns", "Breast Care", "Aged Care"],
+    specialties: ["ICU Nurse", "Ward Nurse", "ED Nurse"],
   },
   {
     id: "medical",
-    label: "Medical Notes",
-    shortLabel: "Medical",
+    label: "Medical (ED Notes)",
+    shortLabel: "Medical (ED)",
     description: "Physician notes, consults and evaluations",
     count: 28,
     icon: Stethoscope,
     accent: "text-emerald-600",
     soft: "bg-emerald-50 dark:bg-emerald-950/35",
-    specialties: ["Cardiology", "ICU", "Neurology", "Oncology", "Orthopedics", "General Medicine", "Emergency Medicine"],
+    specialties: ["Palliative Medicine", "Cardiothoracic", "Neurology", "Respiratory Medicine", "Cardiology", "Hepatology", "Infectious Diseases", "Dermatology", "Ophthalmology", "Palliative Care", "Rehabilitation", "Geriatrics", "Radiology"],
+  },
+  {
+    id: "surgery",
+    label: "Surgery Notes",
+    shortLabel: "Surgery",
+    description: "Pre-operative, operative and post-operative surgical documentation",
+    count: 0,
+    icon: Stethoscope,
+    accent: "text-rose-600",
+    soft: "bg-rose-50 dark:bg-rose-950/35",
+    specialties: ["Neurosurgery", "Ophthalmology", "ENT", "Cardiothoracic Surgery", "Thoracic Surgery", "Hepatobiliary Surgery", "General Surgery", "Colorectal Surgery", "Upper GI Surgery", "Lower GI Surgery", "Vascular Surgery", "Orthopedic Surgery", "Interventional Radiology"],
+  },
+  {
+    id: "discharge",
+    label: "Discharge Summary",
+    shortLabel: "Discharge",
+    description: "Discharge diagnosis, hospital course, medication and follow-up summary",
+    count: 0,
+    icon: FileText,
+    accent: "text-indigo-600",
+    soft: "bg-indigo-50 dark:bg-indigo-950/35",
+    specialties: ["Discharge Summary"],
   },
   {
     id: "pharmacy",
@@ -296,7 +373,7 @@ const categories: CategoryConfig[] = [
     icon: Pill,
     accent: "text-violet-600",
     soft: "bg-violet-50 dark:bg-violet-950/35",
-    specialties: ["General", "ICU", "Cardiology", "Oncology", "Renal", "Anticoagulation", "Nutrition Support"],
+    specialties: ["Pharmacy"],
   },
   {
     id: "allied",
@@ -307,7 +384,7 @@ const categories: CategoryConfig[] = [
     icon: UsersRound,
     accent: "text-orange-600",
     soft: "bg-orange-50 dark:bg-orange-950/35",
-    specialties: ["Physiotherapy", "Nutrition", "Social Work", "Occupational Therapy", "Speech Therapy", "Psychology", "Rehabilitation"],
+    specialties: ["Physiotherapy", "Dietitian", "Social Work", "Occupational Therapy", "Speech Therapy", "Psychology"],
   },
   {
     id: "additional",
@@ -318,36 +395,38 @@ const categories: CategoryConfig[] = [
     icon: ClipboardList,
     accent: "text-cyan-600",
     soft: "bg-cyan-50 dark:bg-cyan-950/35",
-    specialties: ["General", "Follow Up", "Care Coordination", "Patient Education", "Phone Call Note", "Family Communication", "Handover", "Case Management"],
+    specialties: ["General", "Follow Up", "Phone Call Note", "Family Meeting", "Handover", "Case Management", "Morning Round", "Evening Round", "Consultant Notes"],
   },
 ];
+
+const notesCategories = categories.filter((category) => category.label !== "Discharge Summary");
 
 const initialNotes: Note[] = [
   { id: 1, title: "Pain Management Note", category: "Nurse Notes", specialty: "ICU", author: "Nurse Mary", date: "26 May 2026, 09:30 AM", status: "Signed", priority: "High" },
   { id: 2, title: "Shift Assessment", category: "Nurse Notes", specialty: "ICU", author: "Nurse Mary", date: "26 May 2026, 06:30 AM", status: "Signed", priority: "Medium" },
   { id: 3, title: "Care Plan Note", category: "Nurse Notes", specialty: "Cardiology", author: "Nurse Anna", date: "25 May 2026, 10:15 PM", status: "Draft", priority: "Low" },
-  { id: 4, title: "Progress Note", category: "Medical Notes", specialty: "Cardiology", author: "Dr. Smith", date: "26 May 2026, 08:15 AM", status: "Signed", priority: "Medium" },
-  { id: 5, title: "Consult Note", category: "Medical Notes", specialty: "Neurology", author: "Dr. William", date: "25 May 2026, 03:20 PM", status: "Signed", priority: "Low" },
-  { id: 6, title: "Discharge Summary", category: "Medical Notes", specialty: "Cardiology", author: "Dr. Smith", date: "25 May 2026, 11:00 AM", status: "Draft", priority: "High" },
+  { id: 4, title: "Progress Note", category: "Medical (ED Notes)", specialty: "Cardiology", author: "Dr. Smith", date: "26 May 2026, 08:15 AM", status: "Signed", priority: "Medium" },
+  { id: 5, title: "Consultant Notes", category: "Medical (ED Notes)", specialty: "Neurology", author: "Dr. William", date: "25 May 2026, 03:20 PM", status: "Signed", priority: "Low" },
+  { id: 6, title: "Morning Ward Round", category: "Medical (ED Notes)", specialty: "Cardiology", author: "Dr. Smith", date: "25 May 2026, 11:00 AM", status: "Draft", priority: "High" },
   { id: 7, title: "Medication Review", category: "Pharmacy Notes", specialty: "General", author: "Pharmacist John", date: "25 May 2026, 04:45 PM", status: "Signed", priority: "Medium" },
   { id: 8, title: "Drug Interaction Note", category: "Pharmacy Notes", specialty: "ICU", author: "Pharmacist John", date: "25 May 2026, 01:20 PM", status: "Pending Review", priority: "High" },
   { id: 9, title: "Medication Counseling", category: "Pharmacy Notes", specialty: "General", author: "Pharmacist Anna", date: "24 May 2026, 10:30 AM", status: "Draft", priority: "Low" },
   { id: 10, title: "Physiotherapy Session", category: "Allied Health Notes", specialty: "Physiotherapy", author: "John PT", date: "25 May 2026, 02:20 PM", status: "Draft", priority: "Low" },
-  { id: 11, title: "Nutrition Assessment", category: "Allied Health Notes", specialty: "Nutrition", author: "Dietitian Mary", date: "25 May 2026, 11:40 AM", status: "Signed", priority: "Medium" },
+  { id: 11, title: "Dietitian Assessment", category: "Allied Health Notes", specialty: "Dietitian", author: "Dietitian Mary", date: "25 May 2026, 11:40 AM", status: "Signed", priority: "Medium" },
   { id: 12, title: "Social Work Assessment", category: "Allied Health Notes", specialty: "Social Work", author: "Social Worker", date: "24 May 2026, 03:30 PM", status: "Signed", priority: "Low" },
   { id: 13, title: "Follow Up Note", category: "Additional Progress Notes", specialty: "Follow Up", author: "Nurse Mary", date: "24 May 2026, 11:10 AM", status: "Draft", priority: "Low" },
-  { id: 14, title: "Care Coordination Note", category: "Additional Progress Notes", specialty: "Care Coordination", author: "Nurse Anna", date: "24 May 2026, 09:40 AM", status: "Signed", priority: "Medium" },
-  { id: 15, title: "Patient Education Note", category: "Additional Progress Notes", specialty: "Patient Education", author: "Nurse Mary", date: "23 May 2026, 04:20 PM", status: "Signed", priority: "Low" },
+  { id: 14, title: "Morning Round", category: "Additional Progress Notes", specialty: "Morning Round", author: "Dr. Anna", date: "24 May 2026, 09:40 AM", status: "Signed", priority: "Medium" },
+  { id: 15, title: "Evening Round", category: "Additional Progress Notes", specialty: "Evening Round", author: "Dr. Mary", date: "23 May 2026, 04:20 PM", status: "Signed", priority: "Low" },
   { id: 101, title: "Cardiac Assessment Note", category: "Nurse Notes", specialty: "Cardiac Assessment", author: "Nurse Priya", date: "23 May 2026, 02:15 PM", status: "Signed", priority: "High", content: "Cardiac assessment completed. Rhythm stable, peripheral perfusion adequate and chest discomfort absent at rest." },
   { id: 102, title: "Cardiac Rehabilitation Note", category: "Nurse Notes", specialty: "Cardiac Rehab", author: "Nurse Priya", date: "23 May 2026, 12:30 PM", status: "Draft", priority: "Medium", content: "Patient completed supervised mobilisation and tolerated the planned cardiac rehabilitation activity without distress." },
   { id: 103, title: "Burn Wound Care Note", category: "Nurse Notes", specialty: "Burns", author: "Nurse Mary", date: "22 May 2026, 05:10 PM", status: "Signed", priority: "High", content: "Burn dressing changed using aseptic technique. Wound bed clean with no new signs of infection." },
   { id: 104, title: "Breast Care Nursing Note", category: "Nurse Notes", specialty: "Breast Care", author: "Nurse Anna", date: "22 May 2026, 03:45 PM", status: "Pending Review", priority: "Medium", content: "Post-procedure breast care reviewed. Patient advised on wound observation, support garment use and warning signs." },
   { id: 105, title: "Aged Care Review", category: "Nurse Notes", specialty: "Aged Care", author: "Nurse Mary", date: "22 May 2026, 10:20 AM", status: "Signed", priority: "Medium", content: "Falls risk, skin integrity, hydration and orientation reviewed. Assistance required for transfers and personal care." },
-  { id: 106, title: "ICU Medical Progress Note", category: "Medical Notes", specialty: "ICU", author: "Dr. Smith", date: "23 May 2026, 01:40 PM", status: "Signed", priority: "High", content: "Hemodynamically stable in ICU. Continue close respiratory monitoring and current supportive management.", medicalNoteType: "Progress Note" },
-  { id: 107, title: "Oncology Consult Note", category: "Medical Notes", specialty: "Oncology", author: "Dr. Mehta", date: "22 May 2026, 04:35 PM", status: "Pending Review", priority: "High", content: "Oncology review completed. Treatment response and current blood results discussed with the patient.", medicalNoteType: "Consult Note" },
-  { id: 108, title: "Orthopedic Progress Note", category: "Medical Notes", specialty: "Orthopedics", author: "Dr. William", date: "22 May 2026, 02:25 PM", status: "Signed", priority: "Medium", content: "Pain and limb function improving. Continue protected mobilisation and repeat imaging as planned.", medicalNoteType: "Progress Note" },
-  { id: 109, title: "General Medicine Review", category: "Medical Notes", specialty: "General Medicine", author: "Dr. Smith", date: "22 May 2026, 11:50 AM", status: "Draft", priority: "Medium", content: "General medical review completed. Chronic conditions remain stable and medication plan was reconciled.", medicalNoteType: "Progress Note" },
-  { id: 110, title: "Emergency Medicine Note", category: "Medical Notes", specialty: "Emergency Medicine", author: "Dr. Rao", date: "21 May 2026, 08:15 PM", status: "Signed", priority: "High", content: "Emergency assessment completed. Immediate causes of deterioration addressed and patient transferred for ongoing monitoring.", medicalNoteType: "Procedure Note" },
+  { id: 106, title: "Respiratory Medical Progress Note", category: "Medical (ED Notes)", specialty: "Respiratory Medicine", author: "Dr. Smith", date: "23 May 2026, 01:40 PM", status: "Signed", priority: "High", content: "Hemodynamically stable. Continue close respiratory monitoring and current supportive management.", medicalNoteType: "Progress Note" },
+  { id: 107, title: "Palliative Medicine Consultant Note", category: "Medical (ED Notes)", specialty: "Palliative Medicine", author: "Dr. Mehta", date: "22 May 2026, 04:35 PM", status: "Pending Review", priority: "High", content: "Palliative medicine review completed. Treatment goals and symptom control discussed with the patient.", medicalNoteType: "Consultant Notes" },
+  { id: 108, title: "Cardiothoracic Progress Note", category: "Medical (ED Notes)", specialty: "Cardiothoracic", author: "Dr. William", date: "22 May 2026, 02:25 PM", status: "Signed", priority: "Medium", content: "Pain and function improving. Continue protected mobilisation and repeat imaging as planned.", medicalNoteType: "Progress Note" },
+  { id: 109, title: "Geriatrics Review", category: "Medical (ED Notes)", specialty: "Geriatrics", author: "Dr. Smith", date: "22 May 2026, 11:50 AM", status: "Draft", priority: "Medium", content: "Medical review completed. Chronic conditions remain stable and medication plan was reconciled.", medicalNoteType: "Progress Note" },
+  { id: 110, title: "ED Procedure Note", category: "Medical (ED Notes)", specialty: "Radiology", author: "Dr. Rao", date: "21 May 2026, 08:15 PM", status: "Signed", priority: "High", content: "Emergency assessment completed. Immediate causes of deterioration addressed and patient transferred for ongoing monitoring.", medicalNoteType: "Procedure Note" },
   { id: 111, title: "Cardiology Medication Review", category: "Pharmacy Notes", specialty: "Cardiology", author: "Pharmacist John", date: "23 May 2026, 10:35 AM", status: "Signed", priority: "Medium", content: "Cardiac medicines reviewed for dose, duplication and blood pressure effect. No immediate medication safety issue identified." },
   { id: 112, title: "Oncology Medication Safety Note", category: "Pharmacy Notes", specialty: "Oncology", author: "Pharmacist Anna", date: "22 May 2026, 05:25 PM", status: "Pending Review", priority: "High", content: "Anticancer supportive medicines reviewed against current laboratory results and interaction risks." },
   { id: 113, title: "Renal Dose Review", category: "Pharmacy Notes", specialty: "Renal", author: "Pharmacist John", date: "22 May 2026, 01:15 PM", status: "Signed", priority: "High", content: "Renal function reviewed. Dose adjustment recommended for medicines cleared primarily by the kidneys." },
@@ -356,20 +435,27 @@ const initialNotes: Note[] = [
   { id: 116, title: "Occupational Therapy Assessment", category: "Allied Health Notes", specialty: "Occupational Therapy", author: "Therapist Neha", date: "23 May 2026, 09:20 AM", status: "Signed", priority: "Medium", content: "Daily living activities and home safety needs assessed. Adaptive equipment recommendations discussed." },
   { id: 117, title: "Speech Therapy Review", category: "Allied Health Notes", specialty: "Speech Therapy", author: "Therapist Riya", date: "22 May 2026, 03:10 PM", status: "Pending Review", priority: "High", content: "Speech clarity and swallow safety reviewed. Modified texture and supervised intake remain recommended." },
   { id: 118, title: "Psychology Session Note", category: "Allied Health Notes", specialty: "Psychology", author: "Dr. Kapoor", date: "22 May 2026, 11:30 AM", status: "Draft", priority: "Medium", content: "Patient discussed treatment-related anxiety. Grounding strategies and short-term coping plan were introduced." },
-  { id: 119, title: "Rehabilitation Progress Review", category: "Allied Health Notes", specialty: "Rehabilitation", author: "Rehab Clinician", date: "21 May 2026, 02:50 PM", status: "Signed", priority: "Medium", content: "Multidisciplinary rehabilitation goals reviewed. Mobility and self-care tolerance continue to improve." },
+  { id: 119, title: "Physiotherapy Plan", category: "Allied Health Notes", specialty: "Physiotherapy", author: "Physiotherapist", date: "21 May 2026, 02:50 PM", status: "Signed", priority: "Medium", content: "Mobility and self-care goals reviewed. Activity tolerance continues to improve." },
   { id: 120, title: "General Progress Update", category: "Additional Progress Notes", specialty: "General", author: "Nurse Anna", date: "23 May 2026, 08:45 AM", status: "Signed", priority: "Medium", content: "General condition remains stable. Current care plan continues with routine observations and symptom review." },
   { id: 121, title: "Phone Call Note", category: "Additional Progress Notes", specialty: "Phone Call Note", author: "Nurse Mary", date: "22 May 2026, 06:05 PM", status: "Signed", priority: "Medium", content: "Family member contacted by phone and updated on the current care plan, visiting guidance and next review." },
-  { id: 122, title: "Family Communication Note", category: "Additional Progress Notes", specialty: "Family Communication", author: "Nurse Anna", date: "22 May 2026, 02:40 PM", status: "Pending Review", priority: "Medium", content: "Patient consent confirmed and progress discussed with family. Questions about discharge support were addressed." },
+  { id: 122, title: "Family Meeting Notes", category: "Additional Progress Notes", specialty: "Family Meeting", author: "Nurse Anna", date: "22 May 2026, 02:40 PM", status: "Pending Review", priority: "Medium", content: "Patient consent confirmed and progress discussed with family. Questions about discharge support were addressed." },
   { id: 123, title: "Clinical Handover Note", category: "Additional Progress Notes", specialty: "Handover", author: "Nurse Mary", date: "21 May 2026, 07:00 PM", status: "Signed", priority: "High", content: "Shift handover completed using SBAR. Pending investigations, mobility assistance and escalation criteria communicated." },
   { id: 124, title: "Case Management Note", category: "Additional Progress Notes", specialty: "Case Management", author: "Case Manager", date: "21 May 2026, 01:25 PM", status: "Draft", priority: "Medium", content: "Discharge needs, family support and community service referrals reviewed. Follow-up actions assigned to the care team." },
+  { id: 125, title: "General Surgery Note", category: "Surgery Notes", specialty: "General Surgery", author: "Dr. Surgeon", date: "21 May 2026, 11:30 AM", status: "Draft", priority: "High", content: "Post-operative condition, procedure outcome, monitoring instructions and immediate care plan documented." },
+  { id: 126, title: "General Discharge Summary", category: "Discharge Summary", specialty: "General Discharge", author: "Dr. Smith", date: "21 May 2026, 10:00 AM", status: "Draft", priority: "Medium", content: "Hospital course, discharge condition, medication advice and follow-up plan documented." },
 ];
 
 const medicalNoteTypes: MedicalNoteType[] = [
   "Progress Note",
   "Consult Note",
-  "Discharge Summary",
-  "Admission History and Physical",
   "Procedure Note",
+  "Consultant Notes",
+  "Morning Ward Round",
+  "Evening Ward Round",
+  "Operating Notes",
+  "Surgical Notes",
+  "Anesthesia Notes",
+  "End-of-Life Care Notes",
 ];
 
 const pharmacyNoteTypes: PharmacyNoteType[] = [
@@ -383,21 +469,25 @@ const pharmacyNoteTypes: PharmacyNoteType[] = [
   "Renal Dose Review",
 ];
 
-const alliedNoteTypes: AlliedNoteType[] = ["Initial Assessment", "Treatment Session", "Progress Review", "Discharge Summary"];
+const alliedNoteTypes: AlliedNoteType[] = ["Initial Assessment", "Treatment Session", "Progress Review", "Plan"];
 
 const additionalNoteTypes: AdditionalNoteType[] = [
   "General Progress Note",
   "Follow-up Note",
-  "Care Coordination Note",
-  "Patient Education Note",
   "Phone Call Note",
-  "Family Communication Note",
+  "Family Meeting Notes",
   "Handover Note",
   "Case Management Note",
+  "Morning Round",
+  "Evening Round",
+  "Consultant Notes",
 ];
 
 const emptyPharmacyDocumentation: PharmacyDocumentation = {
   noteType: "Medication Review",
+  medicationPreviousToAdmission: "",
+  medicationCurrently: "",
+  medicationAtDischarge: "",
   medicationName: "",
   medicationCode: "",
   dose: "",
@@ -559,6 +649,24 @@ const emptyAdditionalProgressDocumentation: AdditionalProgressDocumentation = {
   amendmentReason: "",
 };
 
+const emptyDischargeSummaryDocumentation: DischargeSummaryDocumentation = {
+  consultantName: "",
+  juniorDoctorName: "",
+  dischargeDateTime: "",
+  team: "",
+  opd: "",
+  presentingComplaints: "",
+  courseDuringHospital: "",
+  bloodInvestigations: "",
+  microbiologicalInvestigations: "",
+  radiologicalInvestigations: "",
+  dischargePlan: "",
+  medicationsOnDischarge: "",
+  followUp: "",
+  followUpWeeks: "",
+  followUpDoctor: "",
+};
+
 function toDateTimeLocalValue(date = new Date()) {
   const offset = date.getTimezoneOffset();
   return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 16);
@@ -570,14 +678,95 @@ function inferMedicalNoteType(title?: string): MedicalNoteType {
 
 function inferAdditionalNoteType(specialty?: string, title?: string): AdditionalNoteType {
   const source = `${specialty ?? ""} ${title ?? ""}`.toLowerCase();
-  if (source.includes("care coordination")) return "Care Coordination Note";
-  if (source.includes("patient education")) return "Patient Education Note";
+  if (source.includes("morning")) return "Morning Round";
+  if (source.includes("evening")) return "Evening Round";
+  if (source.includes("consultant")) return "Consultant Notes";
   if (source.includes("phone call")) return "Phone Call Note";
-  if (source.includes("family")) return "Family Communication Note";
+  if (source.includes("family")) return "Family Meeting Notes";
   if (source.includes("handover")) return "Handover Note";
   if (source.includes("case management")) return "Case Management Note";
   if (source.includes("follow up") || source.includes("follow-up")) return "Follow-up Note";
   return "General Progress Note";
+}
+
+function normalizeNote(note: Note): Note {
+  const legacyCategory = note.category as string;
+  const legacyMedicalType = note.medicalNoteType as string | undefined;
+  const legacyAlliedType = note.alliedHealth?.noteType as string | undefined;
+  const legacyAdditionalType = note.additionalProgress?.noteType as string | undefined;
+  let specialty = note.specialty;
+
+  if (legacyCategory === "Nurse Notes") {
+    if (specialty === "ICU") specialty = "ICU Nurse";
+    else if (!["ICU Nurse", "Ward Nurse", "ED Nurse"].includes(specialty)) specialty = "Ward Nurse";
+  } else if (legacyCategory === "Medical Notes" || legacyCategory === "Medical (ED Notes)") {
+    const medicalSpecialtyMap: Record<string, string> = {
+      ICU: "Respiratory Medicine",
+      Oncology: "Palliative Medicine",
+      Orthopedics: "Rehabilitation",
+      "General Medicine": "Geriatrics",
+      "Emergency Medicine": "Radiology",
+    };
+    specialty = medicalSpecialtyMap[specialty] ?? specialty;
+  } else if (legacyCategory === "Surgery Notes") {
+    const surgerySpecialties = ["Neurosurgery", "Ophthalmology", "ENT", "Cardiothoracic Surgery", "Thoracic Surgery", "Hepatobiliary Surgery", "General Surgery", "Colorectal Surgery", "Upper GI Surgery", "Lower GI Surgery", "Vascular Surgery", "Orthopedic Surgery", "Interventional Radiology"];
+    if (!surgerySpecialties.includes(specialty)) specialty = "General Surgery";
+  } else if (legacyCategory === "Pharmacy Notes") {
+    specialty = "Pharmacy";
+  } else if (legacyCategory === "Allied Health Notes") {
+    if (specialty === "Nutrition") specialty = "Dietitian";
+    if (specialty === "Rehabilitation") specialty = "Physiotherapy";
+  } else if (legacyCategory === "Additional Progress Notes") {
+    const additionalSpecialtyMap: Record<string, string> = {
+      "Care Coordination": "Consultant Notes",
+      "Patient Education": "Morning Round",
+      "Family Communication": "Family Meeting",
+    };
+    specialty = additionalSpecialtyMap[specialty] ?? specialty;
+  }
+
+  const medicalNoteType =
+    legacyMedicalType === "Discharge Summary" || legacyMedicalType === "Admission History and Physical"
+      ? "Consultant Notes"
+      : note.medicalNoteType;
+  const alliedHealth = note.alliedHealth
+    ? { ...note.alliedHealth, noteType: legacyAlliedType === "Discharge Summary" ? "Plan" : note.alliedHealth.noteType }
+    : undefined;
+  const additionalTypeMap: Record<string, AdditionalNoteType> = {
+    "Care Coordination Note": "Consultant Notes",
+    "Patient Education Note": "Morning Round",
+    "Family Communication Note": "Family Meeting Notes",
+  };
+  const additionalProgress = note.additionalProgress
+    ? { ...note.additionalProgress, noteType: additionalTypeMap[legacyAdditionalType ?? ""] ?? note.additionalProgress.noteType }
+    : undefined;
+
+  return {
+    ...note,
+    category: legacyCategory === "Medical Notes" ? "Medical (ED Notes)" : note.category,
+    specialty,
+    medicalNoteType,
+    alliedHealth,
+    additionalProgress,
+  };
+}
+
+function ensureUniqueNoteIds(notes: Note[]) {
+  const usedIds = new Set<number>();
+  let nextId = Math.max(0, ...notes.map((note) => note.id)) + 1;
+
+  return notes.map((note) => {
+    if (!usedIds.has(note.id)) {
+      usedIds.add(note.id);
+      return note;
+    }
+
+    while (usedIds.has(nextId)) nextId += 1;
+    const noteWithUniqueId = { ...note, id: nextId };
+    usedIds.add(nextId);
+    nextId += 1;
+    return noteWithUniqueId;
+  });
 }
 
 function buildNoteTitle({
@@ -595,8 +784,10 @@ function buildNoteTitle({
   pharmacy: PharmacyDocumentation;
   specialty: string;
 }) {
-  if (category === "Medical Notes") return `${medicalNoteType} - ${specialty}`;
-  if (category === "Pharmacy Notes") return `${pharmacy.noteType} - ${pharmacy.medicationName.trim() || specialty}`;
+  if (category === "Medical (ED Notes)") return `${medicalNoteType} - ${specialty}`;
+  if (category === "Surgery Notes") return specialty;
+  if (category === "Discharge Summary") return "Discharge Summary";
+  if (category === "Pharmacy Notes") return pharmacy.noteType;
   if (category === "Allied Health Notes") return `${specialty} ${alliedHealth.noteType}`;
   if (category === "Additional Progress Notes") return additionalProgress.noteType;
   return `${specialty} Nursing Note`;
@@ -646,13 +837,14 @@ function priorityRank(priority: Note["priority"]) {
   return priority === "High" ? 0 : priority === "Medium" ? 1 : 2;
 }
 
-export function NotesPage() {
+export function NotesPage({ standaloneCategory }: { standaloneCategory?: NoteCategory } = {}) {
   const searchParams = useSearchParams();
-  const [notes, setNotes] = React.useState<Note[]>(initialNotes);
+  const standaloneConfig = categories.find((item) => item.label === standaloneCategory);
+  const [notes, setNotes] = React.useState<Note[]>(() => initialNotes.map(normalizeNote));
   const [notesLoaded, setNotesLoaded] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState("all");
+  const [activeTab, setActiveTab] = React.useState(standaloneConfig?.id ?? "all");
   const [specialty, setSpecialty] = React.useState("All Specialties");
-  const [category, setCategory] = React.useState("All Categories");
+  const [category, setCategory] = React.useState<string>(standaloneCategory ?? "All Categories");
   const [author, setAuthor] = React.useState("All Authors");
   const [status, setStatus] = React.useState("All Status");
   const [priority, setPriority] = React.useState("All Priorities");
@@ -669,8 +861,8 @@ export function NotesPage() {
   const [noteId, setNoteId] = React.useState("");
   const [notice, setNotice] = React.useState("");
   const [newNoteOpen, setNewNoteOpen] = React.useState(false);
-  const [newNoteCategory, setNewNoteCategory] = React.useState<NoteCategory>("Nurse Notes");
-  const [filterLockedCategory, setFilterLockedCategory] = React.useState<NoteCategory | null>(null);
+  const [newNoteCategory, setNewNoteCategory] = React.useState<NoteCategory>(standaloneCategory ?? "Nurse Notes");
+  const [filterLockedCategory, setFilterLockedCategory] = React.useState<NoteCategory | null>(standaloneCategory ?? null);
   const [editingNote, setEditingNote] = React.useState<Note | null>(null);
   const [viewingNote, setViewingNote] = React.useState<Note | null>(null);
   const activeCategory = categories.find((item) => item.id === activeTab);
@@ -679,6 +871,8 @@ export function NotesPage() {
   const filtersRequested = searchParams.get("filters") === "open";
 
   React.useEffect(() => {
+    if (standaloneConfig) return;
+
     const nextCategory = categories.find((item) => item.id === requestedCategory);
     if (nextCategory) {
       setActiveTab(nextCategory.id);
@@ -692,7 +886,7 @@ export function NotesPage() {
     setCategory("All Categories");
     setFilterLockedCategory(null);
     setSpecialty("All Specialties");
-  }, [requestedCategory, requestedSpecialty]);
+  }, [requestedCategory, requestedSpecialty, standaloneConfig]);
 
   React.useEffect(() => {
     const storageKey = "notes-data";
@@ -700,9 +894,9 @@ export function NotesPage() {
     const savedNotes = window.localStorage.getItem(storageKey) ?? window.localStorage.getItem(legacyStorageKey);
     if (savedNotes) {
       try {
-        const parsedNotes = JSON.parse(savedNotes) as Note[];
-        const specialtySeeds = initialNotes.filter((note) => note.id >= 101);
-        const mergedNotes = [
+        const parsedNotes = (JSON.parse(savedNotes) as Note[]).map(normalizeNote);
+        const specialtySeeds = initialNotes.filter((note) => note.id >= 101).map(normalizeNote);
+        const mergedNotes = ensureUniqueNoteIds([
           ...parsedNotes,
           ...specialtySeeds.filter(
             (seed) =>
@@ -710,7 +904,7 @@ export function NotesPage() {
                 (note) => note.category === seed.category && note.specialty === seed.specialty,
               ),
           ),
-        ];
+        ]);
         setNotes(mergedNotes);
         window.localStorage.setItem(storageKey, JSON.stringify(mergedNotes));
         window.localStorage.removeItem(legacyStorageKey);
@@ -726,9 +920,17 @@ export function NotesPage() {
     if (notesLoaded) window.localStorage.setItem("notes-data", JSON.stringify(notes));
   }, [notes, notesLoaded]);
 
+  const visibleNotes = React.useMemo(
+    () =>
+      notes.filter((note) =>
+        standaloneCategory ? note.category === standaloneCategory : note.category !== "Discharge Summary",
+      ),
+    [notes, standaloneCategory],
+  );
+
   const filteredNotes = React.useMemo(
     () =>
-      notes.filter((note) => {
+      visibleNotes.filter((note) => {
         const searchableText = JSON.stringify(note).toLowerCase();
         const noteDate = getFilterDate(note, dateType);
         const matchesFromDate = !fromDate || (noteDate !== null && noteDate >= startOfDate(fromDate));
@@ -762,7 +964,7 @@ export function NotesPage() {
             (escalationFilter === "Not Required" && !escalationRequired))
         );
       }),
-    [author, category, dateType, escalationFilter, followUpFilter, fromDate, noteId, noteType, notes, priority, query, signer, specialty, status, toDate, visitId, visitScope],
+    [author, category, dateType, escalationFilter, followUpFilter, fromDate, noteId, noteType, priority, query, signer, specialty, status, toDate, visitId, visitScope, visibleNotes],
   );
 
   function resetFilters() {
@@ -826,7 +1028,7 @@ export function NotesPage() {
     setNotes((current) => [createdNote, ...current]);
     setNewNoteOpen(false);
     setNotice(`${createdNote.title} added successfully.`);
-    setActiveTab("all");
+    setActiveTab(standaloneConfig?.id ?? "all");
   }
 
   function editNote(note: Note) {
@@ -890,8 +1092,10 @@ export function NotesPage() {
       </section>
 
       <div>
-        <h2 className="text-base font-semibold">Notes Center</h2>
-        <p className="text-xs text-muted-foreground">Create, view and manage all types of clinical notes</p>
+        <h2 className="text-base font-semibold">{standaloneConfig?.label ?? "Notes Center"}</h2>
+        <p className="text-xs text-muted-foreground">
+          {standaloneConfig?.description ?? "Create, view and manage all types of clinical notes"}
+        </p>
       </div>
 
       {notice ? (
@@ -904,7 +1108,7 @@ export function NotesPage() {
       {activeTab === "all" ? (
         <AllNotesOverview
           actions={tableActions}
-          allNotes={notes}
+          allNotes={visibleNotes}
           author={author}
           category={category}
           dateType={dateType}
@@ -946,9 +1150,9 @@ export function NotesPage() {
       ) : (
         <CategoryView
           category={categories.find((item) => item.id === activeTab) ?? categories[0]}
-          notes={notes}
+          notes={visibleNotes}
           onNewNote={openNewNote}
-          onShowAll={() => changeTab("all")}
+          onShowAll={standaloneConfig ? undefined : () => changeTab("all")}
           specialty={specialty}
           actions={tableActions}
         />
@@ -1062,12 +1266,12 @@ function AllNotesOverview({
 }) {
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
-        {categories.map((category) => {
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        {notesCategories.map((category) => {
           const Icon = category.icon;
           return (
             <button
-              className="group min-h-44 rounded-lg border border-border bg-surface p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+              className="group flex min-h-48 flex-col rounded-lg border border-border bg-surface p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
               key={category.id}
               onClick={() => onOpenCategory(category.id)}
               type="button"
@@ -1076,8 +1280,8 @@ function AllNotesOverview({
                 <Icon className="h-5 w-5" />
               </span>
               <span className="mt-4 block text-sm font-semibold">{category.label}</span>
-              <span className="mt-1 block min-h-8 text-xs leading-4 text-muted-foreground">{category.description}</span>
-              <span className={cn("mt-4 flex items-center gap-1 text-xs font-semibold", category.accent)}>
+              <span className="mt-1 block text-xs leading-5 text-muted-foreground">{category.description}</span>
+              <span className={cn("mt-auto flex items-center gap-1 pt-5 text-xs font-semibold", category.accent)}>
                 {allNotes.filter((note) => note.category === category.label).length} Notes <ChevronRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
               </span>
             </button>
@@ -1228,7 +1432,7 @@ function NotesFilterPanel(props: {
           <FormField label="Note ID">
             <Input onChange={(event) => props.onNoteIdChange(event.target.value)} placeholder="ID" type="number" value={props.noteId} />
           </FormField>
-          <FilterSelect label="Category" value={props.category} options={["All Categories", ...categories.map((item) => item.label)]} onChange={props.onCategoryChange} />
+          <FilterSelect label="Category" value={props.category} options={["All Categories", ...notesCategories.map((item) => item.label)]} onChange={props.onCategoryChange} />
           <FilterSelect label="Note type" value={props.noteType} options={["All Note Types", ...allNoteTypes]} onChange={props.onNoteTypeChange} />
           <FilterSelect label="Specialty" value={props.specialty} options={["All Specialties", ...allSpecialties]} onChange={props.onSpecialtyChange} />
           <FilterSelect label="Status" value={props.status} options={["All Status", "Signed", "Draft", "Pending Review"]} onChange={props.onStatusChange} />
@@ -1280,12 +1484,13 @@ function CategoryView({
   category: CategoryConfig;
   notes: Note[];
   onNewNote: (category: NoteCategory) => void;
-  onShowAll: () => void;
+  onShowAll?: () => void;
   specialty: string;
 }) {
   const categoryNotes = notes.filter((note) => note.category === category.label);
   const visibleNotes = specialty === "All Specialties" ? categoryNotes : categoryNotes.filter((note) => note.specialty === specialty);
   const Icon = category.icon;
+  const optionLabel = category.label === "Discharge Summary" ? "types" : "specialties";
 
   return (
     <Card className="overflow-hidden">
@@ -1300,17 +1505,19 @@ function CategoryView({
           </div>
         </div>
         <div className="flex items-center gap-2 sm:ml-auto">
-          <Button size="sm" variant="outline" onClick={onShowAll}>
-            All Notes
-          </Button>
+          {onShowAll ? (
+            <Button size="sm" variant="outline" onClick={onShowAll}>
+              All Notes
+            </Button>
+          ) : null}
           <Button size="sm" onClick={() => onNewNote(category.label)}>
-            <Plus className="h-4 w-4" /> New Note
+            <Plus className="h-4 w-4" /> {category.label === "Discharge Summary" ? "New Summary" : "New Note"}
           </Button>
         </div>
       </div>
       <div className="min-h-[420px] min-w-0">
         <div className="flex items-center justify-between border-b border-border px-4 py-2">
-          <span className="text-xs font-semibold">{specialty === "All Specialties" ? `All ${category.shortLabel} specialties` : specialty}</span>
+          <span className="text-xs font-semibold">{specialty === "All Specialties" ? `All ${category.shortLabel} ${optionLabel}` : specialty}</span>
           <span className="text-xs text-muted-foreground">{visibleNotes.length} notes</span>
         </div>
         {visibleNotes.length ? (
@@ -1319,7 +1526,7 @@ function CategoryView({
           <div className="flex min-h-72 flex-col items-center justify-center px-4 text-center">
             <FilePenLine className="h-9 w-9 text-muted-foreground/45" />
             <p className="mt-3 text-sm font-semibold">No notes in {specialty === "All Specialties" ? category.label : specialty}</p>
-            <p className="mt-1 text-xs text-muted-foreground">Create the first note for this specialty.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Create the first note for this {optionLabel === "types" ? "type" : "specialty"}.</p>
           </div>
         )}
       </div>
@@ -1444,7 +1651,7 @@ function FilterView(props: {
             {props.lockedCategory ? (
               <ReadOnlyFilterValue label="Category" value={props.lockedCategory} />
             ) : (
-              <FilterSelect label="Category" value={props.category} options={["All Categories", ...categories.map((item) => item.label)]} onChange={props.onCategoryChange} />
+              <FilterSelect label="Category" value={props.category} options={["All Categories", ...notesCategories.map((item) => item.label)]} onChange={props.onCategoryChange} />
             )}
             <FilterSelect label="Note type" value={props.noteType} options={["All Note Types", ...allNoteTypes]} onChange={props.onNoteTypeChange} />
             <FilterSelect label="Specialty" value={props.specialty} options={["All Specialties", ...allSpecialties]} onChange={props.onSpecialtyChange} />
@@ -1566,6 +1773,11 @@ function NewNoteModal({
   const [bloodPressureDiastolic, setBloodPressureDiastolic] = React.useState("");
   const [pulse, setPulse] = React.useState("");
   const [painScore, setPainScore] = React.useState("");
+  const [temperature, setTemperature] = React.useState("");
+  const [respiratoryRate, setRespiratoryRate] = React.useState("");
+  const [spo2, setSpo2] = React.useState("");
+  const [glucose, setGlucose] = React.useState("");
+  const [consciousnessLevel, setConsciousnessLevel] = React.useState("");
   const [signedBy, setSignedBy] = React.useState("");
   const [signatureAttested, setSignatureAttested] = React.useState(false);
   const [medicalNoteType, setMedicalNoteType] = React.useState<MedicalNoteType>("Progress Note");
@@ -1584,20 +1796,23 @@ function NewNoteModal({
   const [pharmacy, setPharmacy] = React.useState<PharmacyDocumentation>(emptyPharmacyDocumentation);
   const [alliedHealth, setAlliedHealth] = React.useState<AlliedHealthDocumentation>(emptyAlliedHealthDocumentation);
   const [additionalProgress, setAdditionalProgress] = React.useState<AdditionalProgressDocumentation>(emptyAdditionalProgressDocumentation);
+  const [dischargeSummary, setDischargeSummary] = React.useState<DischargeSummaryDocumentation>(emptyDischargeSummaryDocumentation);
   const selectedCategory = categories.find((item) => item.label === category) ?? categories[0];
   const isNurseNote = category === "Nurse Notes";
-  const isMedicalNote = category === "Medical Notes";
+  const isMedicalNote = category === "Medical (ED Notes)";
+  const isSurgeryNote = category === "Surgery Notes";
+  const isDischargeSummary = category === "Discharge Summary";
   const isPharmacyNote = category === "Pharmacy Notes";
   const isAlliedHealthNote = category === "Allied Health Notes";
   const isAdditionalProgressNote = category === "Additional Progress Notes";
-  const hasPatientVisitContext = isMedicalNote || isPharmacyNote || isAlliedHealthNote || isAdditionalProgressNote;
+  const hasPatientVisitContext = isMedicalNote || isSurgeryNote || isPharmacyNote || isAlliedHealthNote || isAdditionalProgressNote;
   const isAmendment = isMedicalNote && editingNote?.status === "Signed";
 
   React.useEffect(() => {
     if (!open) return;
     const nextCategory = categories.find((item) => item.label === initialCategory) ?? categories[0];
     const defaultAuthor =
-      nextCategory.label === "Medical Notes"
+      nextCategory.label === "Medical (ED Notes)" || nextCategory.label === "Surgery Notes" || nextCategory.label === "Discharge Summary"
         ? "Dr. Smith"
         : nextCategory.label === "Pharmacy Notes"
           ? "Pharmacist John"
@@ -1624,6 +1839,11 @@ function NewNoteModal({
     setBloodPressureDiastolic(editingNote?.bloodPressureDiastolic ?? "");
     setPulse(editingNote?.pulse ?? "");
     setPainScore(editingNote?.painScore ?? "");
+    setTemperature(editingNote?.temperature ?? "");
+    setRespiratoryRate(editingNote?.respiratoryRate ?? "");
+    setSpo2(editingNote?.spo2 ?? "");
+    setGlucose(editingNote?.glucose ?? "");
+    setConsciousnessLevel(editingNote?.consciousnessLevel ?? "");
     setSignedBy(editingNote?.signedBy ?? editingNote?.author ?? defaultAuthor);
     setSignatureAttested(false);
     setMedicalNoteType(editingNote?.medicalNoteType ?? inferMedicalNoteType(editingNote?.title));
@@ -1653,6 +1873,12 @@ function NewNoteModal({
       ...editingNote?.additionalProgress,
       amendmentReason: "",
     });
+    setDischargeSummary({
+      ...emptyDischargeSummaryDocumentation,
+      dischargeDateTime: editingNote?.dischargeSummary?.dischargeDateTime ?? editingNote?.serviceDateTime ?? toDateTimeLocalValue(),
+      consultantName: editingNote?.dischargeSummary?.consultantName ?? editingNote?.author ?? defaultAuthor,
+      ...editingNote?.dischargeSummary,
+    });
   }, [editingNote, initialCategory, open]);
 
   function changeSpecialty(value: string) {
@@ -1679,17 +1905,28 @@ function NewNoteModal({
         "Care Coordination Note": "Care Coordination",
         "Patient Education Note": "Patient Education",
         "Phone Call Note": "Phone Call Note",
-        "Family Communication Note": "Family Communication",
+        "Family Meeting Notes": "Family Meeting",
         "Handover Note": "Handover",
         "Case Management Note": "Case Management",
+        "Morning Round": "Morning Round",
+        "Evening Round": "Evening Round",
+        "Consultant Notes": "Consultant Notes",
       };
       setSpecialty(specialtyByType[value as AdditionalNoteType]);
     }
   }
 
+  function updateDischargeSummary<K extends keyof DischargeSummaryDocumentation>(field: K, value: DischargeSummaryDocumentation[K]) {
+    setDischargeSummary((current) => ({ ...current, [field]: value }));
+  }
+
   function submitNote(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!content.trim()) {
+    if (isDischargeSummary && !dischargeSummary.consultantName.trim()) {
+      setFormError("Consultant name is required.");
+      return;
+    }
+    if (!isDischargeSummary && !content.trim()) {
       setFormError("Clinical note is required.");
       return;
     }
@@ -1709,20 +1946,26 @@ function NewNoteModal({
     });
 
     onSave({
-      author: author.trim(),
+      author: isDischargeSummary ? dischargeSummary.consultantName.trim() : author.trim(),
       assessment: isNurseNote ? assessment.trim() : undefined,
       bloodPressureDiastolic: isNurseNote ? bloodPressureDiastolic : undefined,
       bloodPressureSystolic: isNurseNote ? bloodPressureSystolic : undefined,
       category,
-      content: content.trim(),
+      content: isDischargeSummary ? undefined : content.trim(),
       communication: isNurseNote ? communication.trim() : undefined,
       followUpPlan: isNurseNote ? followUpPlan.trim() : undefined,
       intervention: isNurseNote ? intervention.trim() : undefined,
       painScore: isNurseNote ? painScore : undefined,
+      temperature: isNurseNote ? temperature : undefined,
+      respiratoryRate: isNurseNote ? respiratoryRate : undefined,
+      spo2: isNurseNote ? spo2 : undefined,
+      glucose: isNurseNote ? glucose : undefined,
+      consciousnessLevel: isNurseNote ? consciousnessLevel : undefined,
       patientResponse: isNurseNote ? patientResponse.trim() : undefined,
       amendmentReason: isMedicalNote && isAmendment ? amendmentReason.trim() : undefined,
       additionalProgress: isAdditionalProgressNote ? additionalProgress : undefined,
       alliedHealth: isAlliedHealthNote ? { ...alliedHealth, sessionDateTime: serviceDateTime } : undefined,
+      dischargeSummary: isDischargeSummary ? dischargeSummary : undefined,
       authenticatedSigner: hasPatientVisitContext ? authenticatedSigner.trim() : undefined,
       encounterId: hasPatientVisitContext ? encounterId.trim() : undefined,
       medicalAssessment: isMedicalNote ? medicalAssessment.trim() : undefined,
@@ -1737,11 +1980,11 @@ function NewNoteModal({
       pulse: isNurseNote ? pulse : undefined,
       safetyRisk: isNurseNote ? safetyRisk.trim() : undefined,
       secondaryDiagnoses: isMedicalNote ? secondaryDiagnoses.trim() : undefined,
-      serviceDateTime: serviceDateTime || undefined,
+      serviceDateTime: isDischargeSummary ? dischargeSummary.dischargeDateTime || undefined : serviceDateTime || undefined,
       signatureAttested: isSigned ? signatureAttested : false,
       signedAt: isSigned && signatureAttested ? new Date().toISOString() : undefined,
       signedBy: isSigned && signatureAttested ? (hasPatientVisitContext ? authenticatedSigner.trim() : signedBy.trim()) : undefined,
-      specialty,
+      specialty: isDischargeSummary ? "Discharge Summary" : specialty,
       status: nextStatus,
       subjective: isMedicalNote ? subjective.trim() : undefined,
       title: title.trim() || generatedTitle,
@@ -1774,6 +2017,7 @@ function NewNoteModal({
           </div>
         ) : null}
 
+        {!isDischargeSummary ? (
         <div className={cn("grid gap-3 sm:grid-cols-2", isAdditionalProgressNote ? "lg:grid-cols-3" : "lg:grid-cols-4")}>
           <FormField label="Author">
             <Input onChange={(event) => setAuthor(event.target.value)} placeholder="Enter author name" value={author} />
@@ -1789,7 +2033,7 @@ function NewNoteModal({
               <option>High</option>
             </select>
           </FormField>
-          {!isAdditionalProgressNote ? (
+          {!isAdditionalProgressNote && !isPharmacyNote ? (
             <FormField label="Specialty">
               <select
                 className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
@@ -1804,9 +2048,89 @@ function NewNoteModal({
             <Input onChange={(event) => setServiceDateTime(event.target.value)} type="datetime-local" value={serviceDateTime} />
           </FormField>
         </div>
+        ) : null}
+
+        {isDischargeSummary ? (
+          <>
+            <FormSection description="Record the responsible consultant, assisting junior doctor and discharge team." title="Discharge Details">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <FormField label="Consultant Name">
+                  <Input
+                    onChange={(event) => {
+                      updateDischargeSummary("consultantName", event.target.value);
+                      setSignedBy(event.target.value);
+                      if (formError) setFormError("");
+                    }}
+                    placeholder="Enter consultant name"
+                    value={dischargeSummary.consultantName}
+                  />
+                  {formError ? <span className="mt-1.5 block text-xs font-medium text-destructive">{formError}</span> : null}
+                </FormField>
+                <FormField label="Junior Doctor Name">
+                  <Input onChange={(event) => updateDischargeSummary("juniorDoctorName", event.target.value)} placeholder="Enter junior doctor name, if applicable" value={dischargeSummary.juniorDoctorName} />
+                </FormField>
+                <FormField label="Date and Time">
+                  <Input onChange={(event) => updateDischargeSummary("dischargeDateTime", event.target.value)} type="datetime-local" value={dischargeSummary.dischargeDateTime} />
+                </FormField>
+                <FormField label="Team">
+                  <Input onChange={(event) => updateDischargeSummary("team", event.target.value)} placeholder="Enter responsible team" value={dischargeSummary.team} />
+                </FormField>
+                <FormField label="OPD">
+                  <Input onChange={(event) => updateDischargeSummary("opd", event.target.value)} placeholder="Enter OPD name or department" value={dischargeSummary.opd} />
+                </FormField>
+              </div>
+            </FormSection>
+
+            <FormSection description="Complete the clinical discharge record and ongoing care plan." title="Clinical Summary">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <ClinicalTextArea label="Presenting Complaints" onChange={(value) => updateDischargeSummary("presentingComplaints", value)} placeholder="Presenting complaints and symptoms..." value={dischargeSummary.presentingComplaints} />
+                <ClinicalTextArea label="Course During Hospital" onChange={(value) => updateDischargeSummary("courseDuringHospital", value)} placeholder="Hospital course, treatment and response..." value={dischargeSummary.courseDuringHospital} />
+                <ClinicalTextArea label="Blood Investigations" onChange={(value) => updateDischargeSummary("bloodInvestigations", value)} placeholder="Relevant blood investigation findings..." value={dischargeSummary.bloodInvestigations} />
+                <ClinicalTextArea label="Microbiological Investigations" onChange={(value) => updateDischargeSummary("microbiologicalInvestigations", value)} placeholder="Cultures, microbiology and infection findings..." value={dischargeSummary.microbiologicalInvestigations} />
+                <ClinicalTextArea label="Radiological Investigations" onChange={(value) => updateDischargeSummary("radiologicalInvestigations", value)} placeholder="Imaging and radiology findings..." value={dischargeSummary.radiologicalInvestigations} />
+                <ClinicalTextArea label="Discharge Plan" onChange={(value) => updateDischargeSummary("dischargePlan", value)} placeholder="Discharge condition, advice and care plan..." value={dischargeSummary.dischargePlan} />
+                <ClinicalTextArea label="Medications on Discharge" onChange={(value) => updateDischargeSummary("medicationsOnDischarge", value)} placeholder="Medication, dose, route, frequency and duration..." value={dischargeSummary.medicationsOnDischarge} />
+                <ClinicalTextArea label="Follow-up" onChange={(value) => updateDischargeSummary("followUp", value)} placeholder="Follow-up instructions and purpose..." value={dischargeSummary.followUp} />
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <FormField label="Follow-up After (Weeks)">
+                  <Input min="0" onChange={(event) => updateDischargeSummary("followUpWeeks", event.target.value)} placeholder="e.g. 2" type="number" value={dischargeSummary.followUpWeeks} />
+                </FormField>
+                <FormField label="Follow-up Doctor">
+                  <Input onChange={(event) => updateDischargeSummary("followUpDoctor", event.target.value)} placeholder="Enter doctor name" value={dischargeSummary.followUpDoctor} />
+                </FormField>
+              </div>
+            </FormSection>
+          </>
+        ) : null}
 
         {isNurseNote ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <FormField label="Temperature">
+                <Input min="25" max="50" step="0.1" onChange={(event) => setTemperature(event.target.value)} placeholder="36.8 °C" type="number" value={temperature} />
+              </FormField>
+              <FormField label="Respiratory Rate">
+                <Input min="1" max="100" onChange={(event) => setRespiratoryRate(event.target.value)} placeholder="16 breaths/min" type="number" value={respiratoryRate} />
+              </FormField>
+              <FormField label="SpO₂">
+                <Input min="0" max="100" onChange={(event) => setSpo2(event.target.value)} placeholder="98%" type="number" value={spo2} />
+              </FormField>
+              <FormField label="Glucose">
+                <Input min="0" step="0.1" onChange={(event) => setGlucose(event.target.value)} placeholder="mg/dL" type="number" value={glucose} />
+              </FormField>
+              <FormField label="Consciousness Level">
+                <select
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                  onChange={(event) => setConsciousnessLevel(event.target.value)}
+                  value={consciousnessLevel}
+                >
+                  <option value="">Select level</option>
+                  <option>Alert</option>
+                  <option>Responds to Voice</option>
+                  <option>Responds to Pain</option>
+                  <option>Unresponsive</option>
+                </select>
+              </FormField>
               <FormField label="BP systolic">
                 <Input min="40" max="300" onChange={(event) => setBloodPressureSystolic(event.target.value)} placeholder="120" type="number" value={bloodPressureSystolic} />
               </FormField>
@@ -1843,10 +2167,7 @@ function NewNoteModal({
         ) : null}
 
         {isPharmacyNote ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <FormField label="Medication">
-                <Input onChange={(event) => updatePharmacy("medicationName", event.target.value)} placeholder="Medication name" value={pharmacy.medicationName} />
-              </FormField>
+            <div className="grid gap-3">
               <FormField label="Note type">
                 <select
                   className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
@@ -1856,6 +2177,24 @@ function NewNoteModal({
                   {pharmacyNoteTypes.map((item) => <option key={item}>{item}</option>)}
                 </select>
               </FormField>
+              <ClinicalTextArea
+                label="Medication Previous to Admission"
+                onChange={(value) => updatePharmacy("medicationPreviousToAdmission", value)}
+                placeholder="Medicines the patient was taking before admission..."
+                value={pharmacy.medicationPreviousToAdmission}
+              />
+              <ClinicalTextArea
+                label="Medication Currently"
+                onChange={(value) => updatePharmacy("medicationCurrently", value)}
+                placeholder="Medicines currently being administered..."
+                value={pharmacy.medicationCurrently}
+              />
+              <ClinicalTextArea
+                label="Medication at Discharge"
+                onChange={(value) => updatePharmacy("medicationAtDischarge", value)}
+                placeholder="Medicines planned or prescribed at discharge..."
+                value={pharmacy.medicationAtDischarge}
+              />
             </div>
         ) : null}
 
@@ -1905,6 +2244,7 @@ function NewNoteModal({
             </div>
         ) : null}
 
+        {!isDischargeSummary ? (
         <FormField label="Clinical note">
           <textarea
             autoFocus
@@ -1921,6 +2261,7 @@ function NewNoteModal({
           />
           {formError ? <span className="mt-1.5 block text-xs font-medium text-destructive">{formError}</span> : null}
         </FormField>
+        ) : null}
 
         {showSigning ? (
           <div className="grid gap-3 rounded-md border border-warning/35 bg-warning/5 p-3 sm:grid-cols-2">
@@ -1959,7 +2300,11 @@ function NewNoteModal({
           ) : (
             <Button
               onClick={() => {
-                if (!content.trim()) {
+                if (isDischargeSummary && !dischargeSummary.consultantName.trim()) {
+                  setFormError("Consultant name is required.");
+                  return;
+                }
+                if (!isDischargeSummary && !content.trim()) {
                   setFormError("Clinical note is required.");
                   return;
                 }
@@ -2308,10 +2653,10 @@ function AdditionalProgressFields({
         <CommunicationFields data={data} onChange={onChange} />
       ) : null}
 
-      {data.noteType === "Family Communication Note" ? (
+      {data.noteType === "Family Meeting Notes" ? (
         <>
           <CommunicationFields data={data} onChange={onChange} />
-          <FormSection description="Confirm consent and record the information shared with the family member." title="Family communication">
+          <FormSection description="Confirm consent and record the discussion and decisions made with the family." title="Family meeting">
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField label="Patient consent to share information">
                 <select
@@ -2505,7 +2850,7 @@ function NoteDetailsModal({
               <div className="mt-1 text-xs"><PriorityLabel priority={note.priority} /></div>
             </div>
           </div>
-          {note.category === "Medical Notes" ? (
+          {note.category === "Medical (ED Notes)" ? (
             <>
               <div>
                 <h4 className="text-xs font-semibold text-muted-foreground">Medical Document Context</h4>
@@ -2549,6 +2894,7 @@ function NoteDetailsModal({
           {note.category === "Pharmacy Notes" && note.pharmacy ? <PharmacyNoteDetails note={note} /> : null}
           {note.category === "Allied Health Notes" && note.alliedHealth ? <AlliedHealthNoteDetails note={note} /> : null}
           {note.category === "Additional Progress Notes" && note.additionalProgress ? <AdditionalProgressNoteDetails note={note} /> : null}
+          {note.category === "Discharge Summary" && note.dischargeSummary ? <DischargeSummaryDetails note={note} /> : null}
           {hasStructuredObservations(note) ? (
             <div>
               <h4 className="text-xs font-semibold text-muted-foreground">Structured Observations</h4>
@@ -2556,6 +2902,11 @@ function NoteDetailsModal({
                 <DetailField label="Blood Pressure" value={formatBloodPressure(note)} />
                 <DetailField label="Pulse" value={note.pulse ? `${note.pulse} beats/min` : "Not recorded"} />
                 <DetailField label="Pain Score" value={note.painScore ? `${note.painScore}/10` : "Not recorded"} />
+                <DetailField label="Temperature" value={note.temperature ? `${note.temperature} °C` : "Not recorded"} />
+                <DetailField label="Respiratory Rate" value={note.respiratoryRate ? `${note.respiratoryRate} breaths/min` : "Not recorded"} />
+                <DetailField label="SpO₂" value={note.spo2 ? `${note.spo2}%` : "Not recorded"} />
+                <DetailField label="Glucose" value={note.glucose ? `${note.glucose} mg/dL` : "Not recorded"} />
+                <DetailField label="Consciousness Level" value={note.consciousnessLevel || "Not recorded"} />
                 <DetailField label="FHIR target" value="Observation" />
               </div>
             </div>
@@ -2573,10 +2924,10 @@ function NoteDetailsModal({
               </div>
             </div>
           ) : null}
-          {note.content || (!hasStructuredNursingNote(note) && !hasStructuredObservations(note) && !hasStructuredMedicalNote(note) && !note.pharmacy && !note.alliedHealth && !note.additionalProgress) ? (
+          {note.content || (!hasStructuredNursingNote(note) && !hasStructuredObservations(note) && !hasStructuredMedicalNote(note) && !note.pharmacy && !note.alliedHealth && !note.additionalProgress && !note.dischargeSummary) ? (
             <div>
               <h4 className="text-xs font-semibold text-muted-foreground">
-                {hasStructuredNursingNote(note) || hasStructuredMedicalNote(note) || note.pharmacy || note.alliedHealth || note.additionalProgress ? "Additional Narrative" : "Clinical Note"}
+                {hasStructuredNursingNote(note) || hasStructuredMedicalNote(note) || note.pharmacy || note.alliedHealth || note.additionalProgress || note.dischargeSummary ? "Additional Narrative" : "Clinical Note"}
               </h4>
               <div className="mt-2 min-h-28 whitespace-pre-wrap rounded-md border border-border bg-background p-4 text-sm leading-6">
                 {note.content || "No clinical narrative was added to this demo note."}
@@ -2630,6 +2981,46 @@ function PatientVisitDetails({ note }: { note: Note }) {
   );
 }
 
+function DischargeSummaryDetails({ note }: { note: Note }) {
+  const summary = note.dischargeSummary;
+  if (!summary) return null;
+
+  return (
+    <>
+      <div>
+        <h4 className="text-xs font-semibold text-muted-foreground">Discharge Details</h4>
+        <div className="mt-2 grid gap-3 rounded-md border border-border bg-background p-3 sm:grid-cols-2 lg:grid-cols-4">
+          <DetailField label="Consultant Name" value={summary.consultantName || "Not recorded"} />
+          <DetailField label="Junior Doctor Name" value={summary.juniorDoctorName || "Not recorded"} />
+          <DetailField label="Date and Time" value={formatServiceDateTime(summary.dischargeDateTime)} />
+          <DetailField label="Team" value={summary.team || "Not recorded"} />
+          <DetailField label="OPD" value={summary.opd || "Not recorded"} />
+        </div>
+      </div>
+      <div>
+        <h4 className="text-xs font-semibold text-muted-foreground">Clinical Summary</h4>
+        <div className="mt-2 grid gap-3 sm:grid-cols-2">
+          <NarrativeField label="Presenting Complaints" value={summary.presentingComplaints} />
+          <NarrativeField label="Course During Hospital" value={summary.courseDuringHospital} />
+          <NarrativeField label="Blood Investigations" value={summary.bloodInvestigations} />
+          <NarrativeField label="Microbiological Investigations" value={summary.microbiologicalInvestigations} />
+          <NarrativeField label="Radiological Investigations" value={summary.radiologicalInvestigations} />
+          <NarrativeField label="Discharge Plan" value={summary.dischargePlan} />
+          <NarrativeField label="Medications on Discharge" value={summary.medicationsOnDischarge} />
+          <NarrativeField label="Follow-up" value={summary.followUp} />
+        </div>
+      </div>
+      <div>
+        <h4 className="text-xs font-semibold text-muted-foreground">Follow-up Appointment</h4>
+        <div className="mt-2 grid gap-3 rounded-md border border-border bg-background p-3 sm:grid-cols-2">
+          <DetailField label="Follow-up After" value={summary.followUpWeeks ? `${summary.followUpWeeks} week(s)` : "Not recorded"} />
+          <DetailField label="Follow-up Doctor" value={summary.followUpDoctor || "Not recorded"} />
+        </div>
+      </div>
+    </>
+  );
+}
+
 function PharmacyNoteDetails({ note }: { note: Note }) {
   const pharmacy = note.pharmacy;
   if (!pharmacy) return null;
@@ -2637,8 +3028,13 @@ function PharmacyNoteDetails({ note }: { note: Note }) {
     <>
       <PatientVisitDetails note={note} />
       <div>
-        <h4 className="text-xs font-semibold text-muted-foreground">Medication Details</h4>
-        <div className="mt-2 grid gap-3 rounded-md border border-border bg-background p-3 sm:grid-cols-2 lg:grid-cols-4">
+        <h4 className="text-xs font-semibold text-muted-foreground">Medication Reconciliation</h4>
+        <div className="mt-2 grid gap-3 sm:grid-cols-3">
+          <NarrativeField label="Medication Previous to Admission" value={pharmacy.medicationPreviousToAdmission} />
+          <NarrativeField label="Medication Currently" value={pharmacy.medicationCurrently} />
+          <NarrativeField label="Medication at Discharge" value={pharmacy.medicationAtDischarge} />
+        </div>
+        <div className="mt-3 grid gap-3 rounded-md border border-border bg-background p-3 sm:grid-cols-2 lg:grid-cols-4">
           <DetailField label="Note Type" value={pharmacy.noteType} />
           <DetailField label="Medication" value={pharmacy.medicationName || "Not recorded"} />
           <DetailField label="Medication Code" value={pharmacy.medicationCode || "Not recorded"} />
@@ -2800,7 +3196,7 @@ function getAdditionalProgressDetails(data: AdditionalProgressDocumentation) {
       { label: "Additional Education Required", value: data.additionalEducation },
     ];
   }
-  if (data.noteType === "Phone Call Note" || data.noteType === "Family Communication Note") {
+  if (data.noteType === "Phone Call Note" || data.noteType === "Family Meeting Notes") {
     const communicationDetails = [
       { label: "Call Direction", value: data.callDirection },
       { label: "Call Date & Time", value: formatServiceDateTime(data.callDateTime) },
@@ -2816,7 +3212,7 @@ function getAdditionalProgressDetails(data: AdditionalProgressDocumentation) {
       { label: "Call Outcome", value: data.callOutcome },
       { label: "Escalation Required", value: data.escalationRequired },
     ];
-    if (data.noteType === "Family Communication Note") {
+    if (data.noteType === "Family Meeting Notes") {
       communicationDetails.push(
         { label: "Patient Consent", value: data.patientConsent },
         { label: "Information Shared", value: data.informationShared },
@@ -2867,7 +3263,7 @@ function getAlliedSpecialtyDetails(specialty: string, data: AlliedHealthDocument
       { label: "Next-session Plan", value: data.nextSessionPlan },
     ];
   }
-  if (specialty === "Nutrition") {
+  if (specialty === "Dietitian") {
     return [
       { label: "Current Weight", value: data.currentWeight ? `${data.currentWeight} kg` : "" },
       { label: "Height", value: data.height ? `${data.height} cm` : "" },
@@ -2955,7 +3351,17 @@ function hasStructuredMedicalNote(note: Note) {
 }
 
 function hasStructuredObservations(note: Note) {
-  return Boolean(note.bloodPressureSystolic || note.bloodPressureDiastolic || note.pulse || note.painScore);
+  return Boolean(
+    note.bloodPressureSystolic ||
+      note.bloodPressureDiastolic ||
+      note.pulse ||
+      note.painScore ||
+      note.temperature ||
+      note.respiratoryRate ||
+      note.spo2 ||
+      note.glucose ||
+      note.consciousnessLevel,
+  );
 }
 
 function formatBloodPressure(note: Note) {
