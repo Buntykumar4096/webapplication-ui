@@ -185,3 +185,15 @@ body {
   --density-table-cell-y: 0.4375rem;
   --density-table-cell-x: 0.75rem;
 }
+
+.notes-select-safe select {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  text-overflow: ellipsis;
+}
+
+.notes-select-safe option {
+  max-width: calc(100vw - 2rem);
+}

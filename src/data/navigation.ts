@@ -59,12 +59,12 @@ function noteCategoryMenu(id: string, label: string, specialties: string[]) {
 
 const notesMenu = [
   { id: "notes-all", label: "All Notes", route: "/notes" },
+  noteCategoryMenu("medical", "Medical Notes", ["ED Notes", "Physician Notes"]),
+  noteCategoryMenu("surgery", "Surgical Notes", ["Neurosurgery", "Ophthalmology", "ENT", "Cardiothoracic Surgery", "Thoracic Surgery", "Hepatobiliary Surgery", "General Surgery", "Colorectal Surgery", "Upper GI Surgery", "Lower GI Surgery", "Vascular Surgery", "Orthopedic Surgery", "Interventional Radiology", "Gynecology", "Transplant Surgery", "Plastic and Reconstructive Surgery", "Maxillo-facial Surgery", "Urology", "Others"]),
+  noteCategoryMenu("operative", "Operative Notes", ["Neurosurgery", "Ophthalmology", "ENT", "Cardiothoracic Surgery", "Thoracic Surgery", "Hepatobiliary Surgery", "General Surgery", "Colorectal Surgery", "Upper GI Surgery", "Lower GI Surgery", "Vascular Surgery", "Orthopedic Surgery", "Interventional Radiology", "Gynecology", "Transplant Surgery", "Plastic and Reconstructive Surgery", "Maxillo-facial Surgery", "Urology", "Others"]),
   noteCategoryMenu("nurse", "Nurse Notes", ["ICU Nurse", "Ward Nurse", "ED Nurse"]),
-  noteCategoryMenu("medical", "Medical (ED Notes)", ["Palliative Medicine", "Cardiothoracic", "Neurology", "Respiratory Medicine", "Cardiology", "Hepatology", "Infectious Diseases", "Dermatology", "Ophthalmology", "Palliative Care", "Rehabilitation", "Geriatrics", "Radiology"]),
-  noteCategoryMenu("surgery", "Surgery Notes", ["Neurosurgery", "Ophthalmology", "ENT", "Cardiothoracic Surgery", "Thoracic Surgery", "Hepatobiliary Surgery", "General Surgery", "Colorectal Surgery", "Upper GI Surgery", "Lower GI Surgery", "Vascular Surgery", "Orthopedic Surgery", "Interventional Radiology"]),
   noteCategoryMenu("pharmacy", "Pharmacy Notes", []),
-  noteCategoryMenu("allied", "Allied Health Notes", ["Physiotherapy", "Dietitian", "Social Work", "Occupational Therapy", "Speech Therapy", "Psychology"]),
-  noteCategoryMenu("additional", "Additional Progress Notes", ["General", "Follow Up", "Phone Call Note", "Family Meeting", "Handover", "Case Management", "Morning Round", "Evening Round", "Consultant Notes"]),
+  noteCategoryMenu("allied", "Allied Health Notes", ["Physiotherapy", "Dietitian", "Social Worker", "Occupational Therapy", "Speech Therapy", "Psychology"]),
   { id: "notes-filter", label: "Filter Notes", route: "/notes?filters=open" },
 ];
 
