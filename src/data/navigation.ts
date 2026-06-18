@@ -5,6 +5,7 @@ import {
   Droplets,
   FileClock,
   FilePenLine,
+  FlaskConical,
   LayoutDashboard,
   ListChecks,
   ScanSearch,
@@ -77,6 +78,12 @@ export const navigationItems: NavigationItem[] = [
   { id: "patient-list", label: "Patient Details List", icon: UserRound, route: "/patient-list", group: "Patient Management", allowedRoles: ["Super Admin", "Hospital Admin", "Doctor", "Nurse", "Receptionist", "Billing Executive", "Management"], status: "ready" },
   { id: "patient-history-list", label: "Patient History List", icon: ListChecks, route: "/patient-history-list", group: "Patient Management", allowedRoles: ["Super Admin", "Hospital Admin", "Doctor", "Nurse", "Receptionist", "Billing Executive", "Management"], status: "ready" },
   { id: "notes", label: "Notes", icon: FilePenLine, route: "/notes", group: "Patient Management", allowedRoles: ["Super Admin", "Hospital Admin", "Doctor", "Nurse", "Management"], status: "ready", children: notesMenu },
+  { id: "diagnostic-hub", label: "Diagnostic Hub", icon: FlaskConical, route: "/diagnostic-hub", group: "Diagnostics", allowedRoles: ["Super Admin", "Hospital Admin", "Doctor", "Nurse", "Receptionist", "Lab Technician", "Radiologist", "Billing Executive", "Management"], status: "ready", children: [
+    { id: "diagnostic-hub-overview", label: "Overview", route: "/diagnostic-hub" },
+    { id: "diagnostic-hub-report-details", label: "Report Details", route: "/diagnostic-hub/report-details" },
+    { id: "diagnostic-hub-imaging", label: "Imaging Report View", route: "/diagnostic-hub/imaging-report-view" },
+    { id: "diagnostic-hub-trends", label: "Trends & Charts", route: "/diagnostic-hub/trends-charts" },
+  ] },
   { id: "radiology", label: "Radiology", icon: ScanSearch, route: "/radiology", group: "Radiology", allowedRoles: ["Super Admin", "Hospital Admin", "Doctor", "Nurse", "Receptionist", "Radiologist", "Billing Executive", "Management"], status: "ready" },
   { id: "intake-output", label: "Intake-Output", icon: Droplets, route: "/intake-output", group: "IPD Nursing", allowedRoles: ["Super Admin", "Hospital Admin", "Doctor", "Nurse", "Management"], status: "ready" },
   // POCT entries are appended here so the existing sidebar rendering remains unchanged.
